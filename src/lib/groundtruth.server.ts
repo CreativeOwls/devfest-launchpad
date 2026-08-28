@@ -524,13 +524,30 @@ export async function runGroundTruthCheck(
   const trimmed = input.trim();
   const inputKind: "question" | "pasted" = trimmed.length > 280 ? "pasted" : "question";
 
-  const claimTexts = await decompose(trimmed);
+  const budget = new RetrievalBudget();
 
-  const retrievals = await Promise.all(claimTexts.map((claim) => retrieve(db, claim)));
+  const allClaims = await decompose(trimmed);
+  const claimTexts = allClaims.slice(0, LIMITS.maxClaimsPerTask);
+  if (allClaims.length > LIMITS.maxClaimsPerTask) {
+    budget.markCap("claims-per-task");
+    budget.unverifiedClaims = allClaims.slice(LIMITS.maxClaimsPerTask);
+  }
+
+  // Sequential across claims so the per-task call counter is authoritative.
+  const retrievals: Retrieved[][] = [];
+  for (let i = 0; i < claimTexts.length; i += 1) {
+    retrievals.push(await retrieve(db, budget, i, claimTexts[i]!));
+  }
 
   const judgements = await Promise.all(
     claimTexts.map((claim, i) => judge(claim, retrievals[i] ?? [])),
   );
+
+  const stats = budget.toStats();
+  console.info(
+    `[groundtruth] retrieval cost — searches=${stats.searches} scrapes=${stats.scrapes} cacheHits=${stats.cacheHits} cacheMisses=${stats.cacheMisses} capsHit=${stats.capsHit.join("|") || "none"} budgetPaused=${stats.budgetPaused} unverifiedClaims=${stats.unverifiedClaims.length}`,
+  );
+
 
   // Assign global citation numbers.
   let citation = 0;
