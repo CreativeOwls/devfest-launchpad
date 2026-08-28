@@ -23,7 +23,7 @@ export type Database = {
           input_kind: string
           input_text: string
           retrieval_stats: Json | null
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           answer?: string | null
@@ -33,7 +33,7 @@ export type Database = {
           input_kind?: string
           input_text: string
           retrieval_stats?: Json | null
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           answer?: string | null
@@ -43,7 +43,7 @@ export type Database = {
           input_kind?: string
           input_text?: string
           retrieval_stats?: Json | null
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -57,7 +57,7 @@ export type Database = {
           position: number
           status: string
           text: string
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           check_id: string
@@ -68,7 +68,7 @@ export type Database = {
           position: number
           status?: string
           text: string
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           check_id?: string
@@ -79,7 +79,7 @@ export type Database = {
           position?: number
           status?: string
           text?: string
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -171,7 +171,7 @@ export type Database = {
           tier: number
           title: string | null
           url: string
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           canonical_url?: string | null
@@ -186,7 +186,7 @@ export type Database = {
           tier?: number
           title?: string | null
           url: string
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           canonical_url?: string | null
@@ -201,7 +201,7 @@ export type Database = {
           tier?: number
           title?: string | null
           url?: string
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: [
           {
