@@ -17,6 +17,7 @@ import {
   type Claim,
   type ClaimStatus,
   type Drift,
+  type AiAuthorship,
   type EvidenceSource,
 } from "@/lib/groundtruth/types";
 
@@ -133,6 +134,56 @@ function parseJson<T>(raw: string, fallback: T): T {
       }
     }
     return fallback;
+  }
+}
+
+/* ------------------------ AI-authorship estimate ------------------------- */
+
+const AUTHORSHIP_SYSTEM = `You estimate how likely a piece of text was written by an AI language model, based ONLY on writing style.
+Weigh: uniform sentence rhythm, low burstiness, generic transitions ("moreover", "in conclusion"), absence of specific concrete detail, hedging patterns, lack of personal voice or idiosyncrasy, template-like structure, tidy list-of-three constructions.
+Never claim certainty. Short texts deserve low confidence.
+Return STRICT JSON only, no markdown:
+{"ai_likelihood": 0-100, "confidence": "low"|"medium"|"high", "signals": ["short reason", ...], "caveat": "one sentence"}`;
+
+/**
+ * One LLM call per check on the whole source text. Secondary signal only:
+ * failures degrade to null so the grounding pipeline is never affected.
+ */
+export async function assessAiAuthorship(text: string): Promise<AiAuthorship | null> {
+  const source = text.trim();
+  if (source.length < 120) return null; // pure questions / too short to read style
+
+  try {
+    const raw = await callAi(
+      AUTHORSHIP_SYSTEM,
+      `Assess this text:\n"""\n${source.slice(0, 6000)}\n"""`,
+    );
+    const parsed = parseJson<{
+      ai_likelihood?: unknown;
+      confidence?: unknown;
+      signals?: unknown;
+      caveat?: unknown;
+    }>(raw, {});
+
+    const likelihood = Number(parsed.ai_likelihood);
+    if (!Number.isFinite(likelihood)) return null;
+    const confidence =
+      parsed.confidence === "high" || parsed.confidence === "medium" ? parsed.confidence : "low";
+
+    return {
+      aiLikelihood: Math.max(0, Math.min(100, Math.round(likelihood))),
+      confidence,
+      signals: Array.isArray(parsed.signals)
+        ? parsed.signals.filter((s): s is string => typeof s === "string").slice(0, 5)
+        : [],
+      caveat:
+        typeof parsed.caveat === "string" && parsed.caveat.trim()
+          ? parsed.caveat.trim()
+          : "Estimate based on writing style, not definitive.",
+    };
+  } catch (error) {
+    console.error("[groundtruth] authorship estimate failed", error);
+    return null;
   }
 }
 
@@ -623,6 +674,9 @@ export async function runGroundTruthCheck(
 
   const budget = new RetrievalBudget();
 
+  // Independent secondary signal; runs alongside retrieval and never gates it.
+  const authorshipPromise = assessAiAuthorship(media?.ocrText?.trim() || trimmed);
+
   const allClaims = await decompose(trimmed);
   const claimTexts = allClaims.slice(0, LIMITS.maxClaimsPerTask);
   if (allClaims.length > LIMITS.maxClaimsPerTask) {
@@ -681,6 +735,7 @@ export async function runGroundTruthCheck(
     claims.map((c) => ({ claim: c.text, status: c.status, sources: c.sources })),
   );
   const groundingScore = computeGrounding(claims);
+  const aiAuthorship = await authorshipPromise;
 
   return persist(db, userId, {
     inputText: trimmed,
@@ -689,6 +744,7 @@ export async function runGroundTruthCheck(
     ocrText: media?.ocrText ?? null,
     answer,
     groundingScore,
+    aiAuthorship,
     claims,
     retrievalStats: stats,
   });
@@ -709,6 +765,7 @@ async function persist(
       ocr_text: result.ocrText,
       answer: result.answer,
       grounding_score: result.groundingScore,
+      ai_authorship: result.aiAuthorship,
       retrieval_stats: result.retrievalStats,
     })
     .select("id, created_at")
@@ -779,6 +836,7 @@ async function persist(
     ocrText: result.ocrText ?? null,
     answer: result.answer,
     groundingScore: result.groundingScore,
+    aiAuthorship: result.aiAuthorship,
     retrievalStats: result.retrievalStats,
     claims: finalClaims,
   };
@@ -787,7 +845,7 @@ async function persist(
 export async function loadCheck(db: Db, checkId: string): Promise<CheckResult | null> {
   const { data: check } = await db
     .from("gt_checks")
-    .select("id, input_text, input_kind, image_url, ocr_text, answer, grounding_score, retrieval_stats, created_at")
+    .select("id, input_text, input_kind, image_url, ocr_text, answer, grounding_score, ai_authorship, retrieval_stats, created_at")
     .eq("id", checkId)
     .maybeSingle();
   if (!check) return null;
@@ -836,6 +894,7 @@ export async function loadCheck(db: Db, checkId: string): Promise<CheckResult | 
     ocrText: check.ocr_text ?? null,
     answer: check.answer ?? "",
     groundingScore: Number(check.grounding_score ?? 0),
+    aiAuthorship: (check.ai_authorship as AiAuthorship | null) ?? null,
     retrievalStats: {
       ...EMPTY_RETRIEVAL_STATS,
       ...((check.retrieval_stats as Partial<RetrievalStats> | null) ?? {}),

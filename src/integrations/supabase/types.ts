@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       gt_checks: {
         Row: {
+          ai_authorship: Json | null
           answer: string | null
           created_at: string
           grounding_score: number | null
@@ -28,6 +29,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          ai_authorship?: Json | null
           answer?: string | null
           created_at?: string
           grounding_score?: number | null
@@ -40,6 +42,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          ai_authorship?: Json | null
           answer?: string | null
           created_at?: string
           grounding_score?: number | null
