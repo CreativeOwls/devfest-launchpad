@@ -157,12 +157,12 @@ export function ActivityBand({
         </div>
       </div>
 
-      <div className="w-full space-y-2 px-3 pb-3 sm:px-5">
-        <div className={cn("lg:hidden transition-opacity duration-300", !active && "opacity-60")}>
+      <div className="w-full space-y-2 pb-0">
+        <div className={cn("px-3 sm:px-5 lg:hidden transition-opacity duration-300", !active && "opacity-60")}>
           <StageRail states={states} />
         </div>
 
-        <div className="flex items-center justify-between gap-2 md:hidden">
+        <div className="flex items-center justify-between gap-2 px-3 sm:px-5 md:hidden">
           <span className="text-[11px] tabular-nums text-muted-foreground">
             {active ? "Working" : "Agent is idle"} · {daily}/{LIMITS.dailyCallBudget} today
           </span>
@@ -171,8 +171,9 @@ export function ActivityBand({
         <div
           ref={streamRef}
           aria-live="polite"
-          className="elev-1 max-h-28 overflow-y-auto rounded-lg border border-border bg-secondary/50 px-3 py-2 font-mono text-[11px] leading-relaxed"
+          className="max-h-28 w-full overflow-y-auto border-0 border-t border-border bg-secondary/50 px-3 py-2 font-mono text-[11px] leading-relaxed sm:px-5"
         >
+
           {lines.length === 0 ? (
             <p className="text-muted-foreground">agent is idle — submit a check to watch it work</p>
           ) : (
