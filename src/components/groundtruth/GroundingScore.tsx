@@ -38,8 +38,8 @@ export function GroundingScore({ claims, score }: { claims: Claim[]; score: numb
   const total = claims.reduce((sum, c) => sum + (STATUS_WEIGHTS[c.status] ?? 0), 0);
 
   return (
-    <div className={cn("gt-rise elev-3 relative overflow-hidden rounded-xl border p-4 pl-5", style.wash)}>
-      <span aria-hidden="true" className={cn("absolute inset-y-0 left-0 w-1.5", style.bar)} />
+    <div style={style.wash} className="gt-rise elev-3 relative overflow-hidden rounded-xl border p-4 pl-5">
+      <span aria-hidden="true" style={style.bar} className="absolute inset-y-0 left-0 w-1.5" />
       <span
         aria-hidden="true"
         className="seal-sheen pointer-events-none absolute inset-0 opacity-60"
@@ -51,10 +51,10 @@ export function GroundingScore({ claims, score }: { claims: Claim[]; score: numb
         aria-expanded={open}
       >
         <span className="inline-flex items-center gap-2">
-          <span className={cn("seal-sheen rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em] shadow-[inset_0_1px_0_oklch(1_0_0/0.6)]", style.pill)}>
+          <span style={style.pill} className="seal-sheen rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em] shadow-[inset_0_1px_0_oklch(1_0_0/0.6)]">
             Grounded
           </span>
-          <span className={cn("text-4xl font-extrabold tabular-nums tracking-tight", style.text)}>
+          <span style={style.text} className="text-4xl font-extrabold tabular-nums tracking-tight">
             {shown}%
           </span>
         </span>

@@ -195,10 +195,10 @@ export function ActivityBand({
               lines.map((line, index) => (
                 <p
                   key={`${index}-${line.text}`}
+                  style={line.status ? statusStyle(line.status).text : undefined}
                   className={cn(
                     "gt-rise truncate text-muted-foreground",
-                    line.tone && TONE_TEXT[line.tone],
-                    line.status && statusStyle(line.status).text,
+                    !line.status && line.tone && TONE_TEXT[line.tone],
                     line.status && "font-semibold",
                   )}
                 >
