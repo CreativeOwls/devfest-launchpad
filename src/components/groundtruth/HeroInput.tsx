@@ -179,7 +179,9 @@ export function HeroInput({
 
   return (
     <section className="py-8 text-center sm:py-12">
-      <h2 className="wordmark text-4xl sm:text-6xl">GroundTruth</h2>
+      <h2 className="wordmark text-4xl sm:text-6xl">
+        Ground<span className="text-brand">Truth</span>
+      </h2>
       <p className="mt-3 text-sm font-medium tracking-wide text-muted-foreground">
         Answers with receipts.
       </p>
