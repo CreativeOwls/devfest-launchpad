@@ -39,8 +39,9 @@ export function AnswerBody({ answer, claims, activeClaimId, onSelectClaim }: Pro
           <div
             key={index}
             onClick={() => claim && onSelectClaim(claim.id)}
+            style={{ animationDelay: `${Math.min(index, 10) * 45}ms` }}
             className={cn(
-              "relative overflow-hidden rounded-lg px-3 py-2.5 pl-4 transition-all",
+              "gt-rise relative overflow-hidden rounded-lg px-3 py-2.5 pl-4 transition-all duration-200",
               claim
                 ? cn("cursor-pointer border", style.wash)
                 : "border border-transparent px-2 py-1 pl-2",
