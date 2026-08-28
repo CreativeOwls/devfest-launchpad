@@ -29,7 +29,7 @@ function Index() {
       <div className="pointer-events-none absolute inset-0 ambient-glow" aria-hidden="true" />
       <div className="pointer-events-none absolute inset-0 vignette" aria-hidden="true" />
 
-      <div className="relative z-10 flex min-h-screen flex-col items-center justify-center gap-4 px-4">
+      <div className="relative z-10 flex min-h-screen flex-col items-center justify-center gap-8 px-4">
         <Wordmark text="PROJECT 4" />
         <GoogleSignInButton />
       </div>
