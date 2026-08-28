@@ -4,17 +4,22 @@
  */
 export const LIMITS = {
   /** Claims sent to retrieval per task. Extra claims are reported as unverified. */
-  maxClaimsPerTask: 6,
+  maxClaimsPerTask: 8,
   /** Firecrawl search calls per claim. */
   maxSearchesPerClaim: 1,
   /** Firecrawl scrape calls per claim. */
-  maxScrapesPerClaim: 3,
+  maxScrapesPerClaim: 5,
   /** Firecrawl scrape calls per task. */
-  maxScrapesPerTask: 12,
+  maxScrapesPerTask: 24,
   /** Searches + scrapes per task. */
-  maxCallsPerTask: 18,
-  /** Whole-app live retrieval budget per UTC day. */
-  dailyCallBudget: 300,
+  maxCallsPerTask: 32,
+  /**
+   * Whole-app live retrieval budget per UTC day. HARD stop — the daily budget
+   * always wins over the (looser) per-task ceilings.
+   */
+  dailyCallBudget: 500,
+  /** Whole-app live retrieval budget for the entire event, across all days. */
+  eventCallBudget: 2000,
   /** Scrape cache freshness. */
   pageCacheTtlMs: 1000 * 60 * 60 * 24 * 14,
   /** Search cache freshness. */
@@ -28,6 +33,7 @@ export type CapName =
   | "scrapes-per-task"
   | "calls-per-task"
   | "daily-budget"
+  | "event-budget"
   | "early-exit";
 
 export type RetrievalStats = {
@@ -38,6 +44,9 @@ export type RetrievalStats = {
   capsHit: CapName[];
   budgetPaused: boolean;
   unverifiedClaims: string[];
+  /** Live whole-app counters, for the retrieval cost line. */
+  dailyCallsUsed: number;
+  eventCallsUsed: number;
 };
 
 export const EMPTY_RETRIEVAL_STATS: RetrievalStats = {
@@ -48,6 +57,8 @@ export const EMPTY_RETRIEVAL_STATS: RetrievalStats = {
   capsHit: [],
   budgetPaused: false,
   unverifiedClaims: [],
+  dailyCallsUsed: 0,
+  eventCallsUsed: 0,
 };
 
 /** Normalized cache key for a URL: strips hash, tracking params and trailing slash. */

@@ -229,6 +229,10 @@ export type Database = {
         Args: { _count: number; _daily_budget: number }
         Returns: number
       }
+      gt_reserve_firecrawl_calls_v2: {
+        Args: { _count: number; _daily_budget: number; _event_budget: number }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never

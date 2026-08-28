@@ -111,6 +111,8 @@ class RetrievalBudget {
   cacheMisses = 0;
   budgetPaused = false;
   unverifiedClaims: string[] = [];
+  dailyCallsUsed = 0;
+  eventCallsUsed = 0;
   private caps = new Set<CapName>();
   private perClaimSearches = new Map<number, number>();
   private perClaimScrapes = new Map<number, number>();
@@ -123,29 +125,43 @@ class RetrievalBudget {
     return this.searches + this.scrapes;
   }
 
-  /** Reserve one live call against the whole-app daily budget. */
-  private async reserveDaily(): Promise<boolean> {
+  /**
+   * Reserve one live call against the whole-app daily AND event budgets.
+   * Both are hard stops that outrank the per-task ceilings.
+   */
+  private async reserveGlobal(): Promise<boolean> {
     try {
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-      const { data, error } = await supabaseAdmin.rpc("gt_reserve_firecrawl_calls", {
+      const { data, error } = await supabaseAdmin.rpc("gt_reserve_firecrawl_calls_v2", {
         _count: 1,
         _daily_budget: LIMITS.dailyCallBudget,
+        _event_budget: LIMITS.eventCallBudget,
       });
       if (error) {
-        console.error("[groundtruth] daily budget reservation failed", error);
+        console.error("[groundtruth] global budget reservation failed", error);
         // Fail closed: a broken counter must not become unlimited spend.
         this.budgetPaused = true;
         this.markCap("daily-budget");
         return false;
       }
-      if ((data ?? 0) < 1) {
+
+      const result = (data ?? {}) as {
+        granted?: number;
+        day_used?: number;
+        event_used?: number;
+        exhausted_scope?: "daily" | "event" | null;
+      };
+      this.dailyCallsUsed = result.day_used ?? this.dailyCallsUsed;
+      this.eventCallsUsed = result.event_used ?? this.eventCallsUsed;
+
+      if ((result.granted ?? 0) < 1) {
         this.budgetPaused = true;
-        this.markCap("daily-budget");
+        this.markCap(result.exhausted_scope === "event" ? "event-budget" : "daily-budget");
         return false;
       }
       return true;
     } catch (err) {
-      console.error("[groundtruth] daily budget reservation threw", err);
+      console.error("[groundtruth] global budget reservation threw", err);
       this.budgetPaused = true;
       this.markCap("daily-budget");
       return false;
@@ -161,7 +177,7 @@ class RetrievalBudget {
       this.markCap("searches-per-claim");
       return false;
     }
-    if (!(await this.reserveDaily())) return false;
+    if (!(await this.reserveGlobal())) return false;
     this.perClaimSearches.set(claimIndex, (this.perClaimSearches.get(claimIndex) ?? 0) + 1);
     this.searches += 1;
     return true;
@@ -180,13 +196,13 @@ class RetrievalBudget {
       this.markCap("scrapes-per-claim");
       return false;
     }
-    if (!(await this.reserveDaily())) return false;
+    if (!(await this.reserveGlobal())) return false;
     this.perClaimScrapes.set(claimIndex, (this.perClaimScrapes.get(claimIndex) ?? 0) + 1);
     this.scrapes += 1;
     return true;
   }
 
-  /** Scrape slots left for this claim, ignoring the daily budget. */
+  /** Scrape slots left for this claim, ignoring the global budgets. */
   claimScrapeAttemptsLeft(claimIndex: number): number {
     return Math.max(LIMITS.maxScrapesPerClaim - (this.perClaimScrapes.get(claimIndex) ?? 0), 0);
   }
@@ -200,6 +216,8 @@ class RetrievalBudget {
       capsHit: [...this.caps],
       budgetPaused: this.budgetPaused,
       unverifiedClaims: this.unverifiedClaims,
+      dailyCallsUsed: this.dailyCallsUsed,
+      eventCallsUsed: this.eventCallsUsed,
     };
   }
 }
@@ -545,7 +563,7 @@ export async function runGroundTruthCheck(
 
   const stats = budget.toStats();
   console.info(
-    `[groundtruth] retrieval cost — searches=${stats.searches} scrapes=${stats.scrapes} cacheHits=${stats.cacheHits} cacheMisses=${stats.cacheMisses} capsHit=${stats.capsHit.join("|") || "none"} budgetPaused=${stats.budgetPaused} unverifiedClaims=${stats.unverifiedClaims.length}`,
+    `[groundtruth] retrieval cost — searches=${stats.searches} scrapes=${stats.scrapes} cacheHits=${stats.cacheHits} cacheMisses=${stats.cacheMisses} capsHit=${stats.capsHit.join("|") || "none"} budgetPaused=${stats.budgetPaused} daily=${stats.dailyCallsUsed}/${LIMITS.dailyCallBudget} event=${stats.eventCallsUsed}/${LIMITS.eventCallBudget} unverifiedClaims=${stats.unverifiedClaims.length}`,
   );
 
 
