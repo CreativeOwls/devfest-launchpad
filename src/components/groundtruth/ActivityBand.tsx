@@ -15,7 +15,7 @@ export const PIPELINE_STAGES = [
   "Scoring",
 ] as const;
 
-type Line = { text: string; tone?: "good" | "warn" | "bad" | undefined };
+type Line = { text: string; tone?: "good" | "warn" | "bad" | undefined; status?: ClaimStatus | undefined };
 
 function domainOf(url: string): string {
   try {
@@ -61,7 +61,7 @@ function buildLines(
     }
     lines.push({
       text: `judge: claim ${index + 1} → ${claim.status}`,
-      tone: statusTone(claim.status),
+      status: claim.status,
     });
   });
 
@@ -192,7 +192,12 @@ export function ActivityBand({
               lines.map((line, index) => (
                 <p
                   key={`${index}-${line.text}`}
-                  className={cn("truncate text-muted-foreground", line.tone && TONE_TEXT[line.tone])}
+                  className={cn(
+                    "truncate text-muted-foreground",
+                    line.tone && TONE_TEXT[line.tone],
+                    line.status && statusStyle(line.status).text,
+                    line.status && "font-semibold",
+                  )}
                 >
                   <span className="mr-2 text-foreground/30">›</span>
                   {line.text}
