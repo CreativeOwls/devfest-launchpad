@@ -140,7 +140,7 @@
 @utility wordmark {
   font-weight: 800;
   letter-spacing: -0.06em;
-  line-height: 0.85;
+  line-height: 1.05;
 }
 
 /* Ambient centre glow behind the wordmark */
