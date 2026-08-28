@@ -591,6 +591,7 @@ export async function runGroundTruthCheck(
     answer,
     groundingScore,
     claims,
+    retrievalStats: stats,
   });
 }
 
@@ -607,6 +608,7 @@ async function persist(
       input_kind: result.inputKind,
       answer: result.answer,
       grounding_score: result.groundingScore,
+      retrieval_stats: result.retrievalStats,
     })
     .select("id, created_at")
     .single();
@@ -674,6 +676,7 @@ async function persist(
     inputKind: result.inputKind,
     answer: result.answer,
     groundingScore: result.groundingScore,
+    retrievalStats: result.retrievalStats,
     claims: finalClaims,
   };
 }
@@ -681,7 +684,7 @@ async function persist(
 export async function loadCheck(db: Db, checkId: string): Promise<CheckResult | null> {
   const { data: check } = await db
     .from("gt_checks")
-    .select("id, input_text, input_kind, answer, grounding_score, created_at")
+    .select("id, input_text, input_kind, answer, grounding_score, retrieval_stats, created_at")
     .eq("id", checkId)
     .maybeSingle();
   if (!check) return null;
@@ -728,6 +731,10 @@ export async function loadCheck(db: Db, checkId: string): Promise<CheckResult | 
     inputKind: (check.input_kind as "question" | "pasted") ?? "question",
     answer: check.answer ?? "",
     groundingScore: Number(check.grounding_score ?? 0),
+    retrievalStats: {
+      ...EMPTY_RETRIEVAL_STATS,
+      ...((check.retrieval_stats as Partial<RetrievalStats> | null) ?? {}),
+    },
     createdAt: check.created_at,
     claims,
   };
