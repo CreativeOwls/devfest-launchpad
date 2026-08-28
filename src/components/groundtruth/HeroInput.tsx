@@ -179,18 +179,22 @@ export function HeroInput({
   }
 
   return (
-    <section className="py-6 text-center sm:py-10 lg:py-12">
-      <div className="flex flex-col items-center gap-3 sm:gap-4">
+    <section className="relative py-6 text-center sm:py-10 lg:py-12">
+      <span
+        aria-hidden="true"
+        className="gt-aurora pointer-events-none absolute left-1/2 top-0 -z-10 h-56 w-[min(46rem,90%)] -translate-x-1/2 opacity-70"
+      />
+      <div className="gt-rise flex flex-col items-center gap-3 sm:gap-4">
         <img
           src={logoAsset.url}
           alt="GroundTruth"
           className="h-20 w-auto object-contain sm:h-28 lg:h-36"
         />
       </div>
-      <p className="mt-3 text-sm font-medium tracking-wide text-muted-foreground">
+      <p className="gt-rise mt-3 text-sm font-semibold uppercase tracking-[0.22em] text-muted-foreground [animation-delay:80ms]">
         Answers with receipts.
       </p>
-      <div className="mx-auto mt-6 max-w-2xl text-left sm:mt-8">{form}</div>
+      <div className="gt-rise mx-auto mt-6 max-w-2xl text-left [animation-delay:140ms] sm:mt-8">{form}</div>
     </section>
   );
 }

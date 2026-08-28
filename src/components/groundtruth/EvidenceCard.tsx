@@ -13,8 +13,8 @@ function formatDate(value: string | null) {
 export function EvidenceCard({ source, index = 0 }: { source: EvidenceSource; index?: number }) {
   return (
     <article
-      className="gt-rise elev-1 rounded-lg border border-border bg-card p-3.5 transition-[box-shadow,transform] duration-200 hover:-translate-y-px hover:elev-2"
-      style={{ animationDelay: `${Math.min(index, 8) * 40}ms` }}
+      className="gt-rise gt-lift elev-1 rounded-lg border border-border bg-card p-3.5 hover:border-brand/40"
+      style={{ animationDelay: `${Math.min(index, 10) * 45}ms` }}
     >
       <div className="flex items-start justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2">
