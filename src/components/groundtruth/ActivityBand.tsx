@@ -114,7 +114,7 @@ export function ActivityBand({
           <img
             src={logoAsset.url}
             alt="GroundTruth"
-            className="h-8 w-auto shrink-0 object-contain sm:h-11 lg:h-12"
+            className="h-7 w-auto shrink-0 object-contain sm:h-11 lg:h-12"
           />
           <span className="hidden text-[11px] text-muted-foreground xl:inline">
             Answers with receipts.
@@ -162,7 +162,7 @@ export function ActivityBand({
             onClick={() => setExpanded((v) => !v)}
             aria-expanded={open}
             aria-label="Toggle live agent process"
-            className="grid size-9 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+            className="hidden size-9 place-items-center rounded-md text-muted-foreground sm:grid transition-colors hover:bg-secondary hover:text-foreground"
           >
             <ChevronDown
               className={cn("size-4 transition-transform", open && "rotate-180")}
