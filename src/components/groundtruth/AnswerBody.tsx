@@ -1,4 +1,6 @@
 import { StatusDot } from "@/components/groundtruth/StatusDot";
+import { StatusPill } from "@/components/groundtruth/StatusPill";
+import { statusStyle } from "@/lib/groundtruth/statusStyles";
 import type { Claim } from "@/lib/groundtruth/types";
 import { cn } from "@/lib/utils";
 
