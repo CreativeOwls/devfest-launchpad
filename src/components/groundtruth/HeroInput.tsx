@@ -155,9 +155,14 @@ export function HeroInput({
           type="submit"
           disabled={pending}
           size={compact ? "sm" : "lg"}
-          className="shrink-0 rounded-full px-5 font-semibold tracking-tight sm:px-6"
+          className={cn(
+            "gt-cta shrink-0 rounded-full px-5 font-semibold tracking-tight sm:px-6",
+            pending && "gt-cta-busy",
+          )}
         >
-          {pending ? "Checking…" : "Check It"}
+          <span className={cn("inline-block", pending && "gt-pop")}>
+            {pending ? "Checking…" : "Check It"}
+          </span>
         </Button>
       </div>
     </form>

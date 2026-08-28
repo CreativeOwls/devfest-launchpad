@@ -237,7 +237,7 @@ function AppPage() {
               <Button
                 variant="default"
                 size="sm"
-                className="gap-1 rounded-full px-3 sm:px-4"
+                className="gt-cta gap-1 rounded-full px-3 sm:px-4"
                 onClick={newCheck}
               >
                 <Plus className="size-4" aria-hidden="true" />
