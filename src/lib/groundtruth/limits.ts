@@ -5,14 +5,20 @@
 export const LIMITS = {
   /** Claims sent to retrieval per task. Extra claims are reported as unverified. */
   maxClaimsPerTask: 8,
-  /** Firecrawl search calls per claim. */
-  maxSearchesPerClaim: 1,
+  /** Firecrawl search calls per claim (2nd is reserved for an SEC/EDGAR query). */
+  maxSearchesPerClaim: 2,
   /** Firecrawl scrape calls per claim. */
-  maxScrapesPerClaim: 5,
+  maxScrapesPerClaim: 3,
+  /**
+   * Scrapes each claim is guaranteed in the first pass, before any claim is
+   * allowed a second scrape. This is what stops early claims starving later ones.
+   */
+  firstPassScrapesPerClaim: 1,
   /** Firecrawl scrape calls per task. */
   maxScrapesPerTask: 24,
   /** Searches + scrapes per task. */
   maxCallsPerTask: 32,
+
   /**
    * Whole-app live retrieval budget per UTC day. HARD stop — the daily budget
    * always wins over the (looser) per-task ceilings.

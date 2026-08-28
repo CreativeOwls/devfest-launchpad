@@ -59,6 +59,7 @@ export type Database = {
       gt_claims: {
         Row: {
           check_id: string
+          context: string | null
           created_at: string
           drift: Json | null
           id: string
@@ -70,6 +71,7 @@ export type Database = {
         }
         Insert: {
           check_id: string
+          context?: string | null
           created_at?: string
           drift?: Json | null
           id?: string
@@ -81,6 +83,7 @@ export type Database = {
         }
         Update: {
           check_id?: string
+          context?: string | null
           created_at?: string
           drift?: Json | null
           id?: string
