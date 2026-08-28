@@ -53,7 +53,7 @@ export function StageRail({ states, className }: { states: StageState[]; classNa
                   "grid size-6 shrink-0 place-items-center rounded-full border text-[10px] font-semibold transition-[background-color,border-color,color,box-shadow] duration-300 sm:size-7",
                   state === "done" && "border-brand/60 bg-brand/15 text-brand",
                   state === "current" &&
-                    "gt-stage-pulse border-brand bg-brand text-brand-foreground",
+                    "gt-stage-pulse border-brand bg-brand text-background",
                   state === "pending" && "border-border bg-card text-muted-foreground",
                 )}
               >
