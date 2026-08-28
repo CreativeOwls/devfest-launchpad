@@ -443,3 +443,113 @@
     animation: none !important;
   }
 }
+
+/* ── Expressive polish layer: sheen, ambient glow, tactile surfaces ───── */
+@keyframes gt-sheen-sweep {
+  from {
+    transform: translateX(-120%) skewX(-18deg);
+  }
+  to {
+    transform: translateX(220%) skewX(-18deg);
+  }
+}
+@keyframes gt-aurora-drift {
+  0%,
+  100% {
+    transform: translate3d(-4%, -2%, 0) scale(1);
+    opacity: 0.75;
+  }
+  50% {
+    transform: translate3d(4%, 3%, 0) scale(1.08);
+    opacity: 1;
+  }
+}
+@keyframes gt-pop {
+  0% {
+    transform: scale(0.82);
+    opacity: 0;
+  }
+  55% {
+    transform: scale(1.09);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Light sweep across a button/badge on hover */
+@utility gt-sheen {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+.gt-sheen::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(
+    100deg,
+    transparent 35%,
+    oklch(1 0 0 / 0.34) 50%,
+    transparent 65%
+  );
+  transform: translateX(-120%) skewX(-18deg);
+  opacity: 0;
+}
+.gt-sheen:hover::after {
+  opacity: 1;
+  animation: gt-sheen-sweep 620ms var(--ease-instrument, ease-out) 1;
+}
+
+/* Soft ambient aurora behind hero / score surfaces */
+@utility gt-aurora {
+  background:
+    radial-gradient(
+      60% 70% at 30% 30%,
+      color-mix(in oklab, var(--brand) 22%, transparent) 0%,
+      transparent 70%
+    ),
+    radial-gradient(
+      55% 65% at 72% 60%,
+      color-mix(in oklab, var(--brand-ink) 14%, transparent) 0%,
+      transparent 72%
+    );
+  filter: blur(38px);
+  animation: gt-aurora-drift 9s ease-in-out infinite;
+}
+
+/* Consistent tactile response for cards / rows / tabs */
+@utility gt-lift {
+  transition:
+    transform 180ms var(--ease-instrument, ease-out),
+    box-shadow 180ms var(--ease-instrument, ease-out),
+    border-color 180ms var(--ease-instrument, ease-out),
+    background-color 180ms var(--ease-instrument, ease-out);
+}
+.gt-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--elev-2);
+}
+.gt-lift:active {
+  transform: translateY(0);
+  box-shadow: var(--elev-1);
+}
+
+@utility gt-pop {
+  animation: gt-pop 240ms var(--ease-instrument, ease-out) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gt-sheen:hover::after,
+  .gt-aurora,
+  .gt-pop {
+    animation: none !important;
+  }
+  .gt-lift:hover,
+  .gt-lift:active {
+    transform: none;
+  }
+}
