@@ -82,9 +82,9 @@ export function HeroInput({
         void takeFile(event.dataTransfer.files[0]);
       }}
       className={cn(
-        "rounded-xl border border-border bg-card/40 p-3 transition-colors",
+        "card-elevated rounded-2xl border border-border bg-card p-3 transition-colors",
         dragging && "border-accent-blue/60 bg-accent-blue/5",
-        !compact && "p-4",
+        !compact && "p-5",
       )}
     >
       <Textarea
@@ -94,9 +94,10 @@ export function HeroInput({
         placeholder="Paste a viral post, an article, or ask a question…"
         className={cn(
           "resize-y border-0 bg-transparent px-0 shadow-none focus-visible:ring-0",
-          compact ? "min-h-12" : "min-h-32 text-base",
+          compact ? "min-h-12" : "min-h-36 text-base leading-relaxed",
         )}
       />
+
 
       {attachment ? (
         <div className="mt-2 flex items-center gap-3 rounded-lg border border-border bg-background/60 p-2">
