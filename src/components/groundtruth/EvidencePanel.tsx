@@ -44,7 +44,7 @@ export function EvidencePanel({
               Live retrieval paused (daily source budget reached) — showing cached evidence.
             </p>
           ) : null}
-          <p className="text-[11px] tabular-nums text-muted-foreground">
+          <p className="rounded-lg border border-border bg-secondary/60 px-2.5 py-1.5 font-mono text-[11px] tabular-nums text-muted-foreground">
             {sourceCount} source{sourceCount === 1 ? "" : "s"} · {stats.searches} search
             {stats.searches === 1 ? "" : "es"} · {stats.scrapes} scrape
             {stats.scrapes === 1 ? "" : "s"} · {stats.cacheHits} cache hit
@@ -73,16 +73,18 @@ export function EvidencePanel({
             key={claim.id}
             data-claim-id={claim.id}
             className={cn(
-              "scroll-mt-4 rounded-lg border p-3 transition-all duration-500",
-              activeClaimId === claim.id ? "border-accent-blue/50 bg-card/70" : "border-border",
+              "scroll-mt-4 rounded-xl border bg-card p-3.5 transition-all duration-500",
+              activeClaimId === claim.id
+                ? "border-accent-blue/50 shadow-sm ring-1 ring-accent-blue/20"
+                : "border-border",
               revealed ? "opacity-100" : "opacity-40",
             )}
           >
             <div className="flex items-start gap-2">
               <StatusDot status={revealed ? claim.status : undefined} pending={!revealed} className="mt-1.5" />
               <div className="min-w-0">
-                <p className="text-sm text-foreground">{claim.text}</p>
-                <p className="mt-1 text-[11px] uppercase tracking-wide text-muted-foreground">
+                <p className="text-sm font-medium leading-snug text-foreground">{claim.text}</p>
+                <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                   {revealed ? claim.status : "Judging…"}
                 </p>
               </div>
