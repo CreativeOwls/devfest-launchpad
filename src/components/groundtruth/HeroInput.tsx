@@ -150,7 +150,12 @@ export function HeroInput({
             </span>
           ) : null}
         </div>
-        <Button type="submit" disabled={pending} size={compact ? "sm" : "default"}>
+        <Button
+          type="submit"
+          disabled={pending}
+          size={compact ? "sm" : "lg"}
+          className="rounded-full px-6"
+        >
           {pending ? "Checking…" : "Check It"}
         </Button>
       </div>
@@ -173,10 +178,13 @@ export function HeroInput({
   }
 
   return (
-    <section className="py-6 text-center sm:py-10">
-      <h2 className="wordmark text-4xl sm:text-5xl">GroundTruth</h2>
-      <p className="mt-2 text-sm text-muted-foreground">Answers with receipts.</p>
-      <div className="mx-auto mt-6 max-w-2xl text-left">{form}</div>
+    <section className="py-8 text-center sm:py-12">
+      <h2 className="wordmark text-4xl sm:text-6xl">GroundTruth</h2>
+      <p className="mt-3 text-sm font-medium tracking-wide text-muted-foreground">
+        Answers with receipts.
+      </p>
+      <div className="mx-auto mt-8 max-w-2xl text-left">{form}</div>
     </section>
   );
 }
+
