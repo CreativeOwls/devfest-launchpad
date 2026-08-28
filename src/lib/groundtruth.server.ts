@@ -1,6 +1,14 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { Database } from "@/integrations/supabase/types";
+import {
+  EMPTY_RETRIEVAL_STATS,
+  LIMITS,
+  normalizeQuery,
+  normalizeUrl,
+  type CapName,
+  type RetrievalStats,
+} from "@/lib/groundtruth/limits";
 import { classifyTier, sourceNameOf } from "@/lib/groundtruth/tiers";
 import {
   computeGrounding,
@@ -18,9 +26,6 @@ const AI_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 const AI_MODEL = "google/gemini-3.7-flash";
 const FIRECRAWL_V2 = "https://api.firecrawl.dev/v2";
 
-const MAX_CLAIMS = 5;
-const SOURCES_PER_CLAIM = 3;
-const CACHE_TTL_MS = 1000 * 60 * 60 * 24 * 7;
 
 /* ---------------------------------- AI ---------------------------------- */
 
