@@ -25,7 +25,7 @@ import {
   DrawerTrigger,
 } from "@/components/ui/drawer";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useMediaQuery } from "@/hooks/use-media-query";
 import { getCheck, listChecks, ocrImage, runCheck } from "@/lib/groundtruth.functions";
 import type { CheckResult } from "@/lib/groundtruth/types";
 
@@ -56,7 +56,7 @@ const STAGES = [
 ];
 
 function AppPage() {
-  const isMobile = useIsMobile();
+  const hasSidePanel = useMediaQuery("(min-width: 1280px)");
   const queryClient = useQueryClient();
 
   const [input, setInput] = useState("");
@@ -155,7 +155,7 @@ function AppPage() {
 
   const selectClaim = (claimId: string) => {
     setActiveClaimId(claimId);
-    if (isMobile) setDrawerOpen(true);
+    if (!hasSidePanel) setDrawerOpen(true);
   };
 
   const newCheck = () => {
@@ -244,10 +244,9 @@ function AppPage() {
                 <span className="hidden sm:inline">New Check</span>
                 <span className="sr-only sm:hidden">New Check</span>
               </Button>
-              {isMobile ? (
-                <Drawer open={drawerOpen} onOpenChange={setDrawerOpen}>
+              <Drawer open={drawerOpen} onOpenChange={setDrawerOpen}>
                   <DrawerTrigger asChild>
-                    <Button variant="outline" size="sm" className="rounded-full px-3">
+                    <Button variant="outline" size="sm" className="rounded-full px-3 xl:hidden">
                       {claims.reduce((n, c) => n + c.sources.length, 0)}
                       <span className="sr-only">evidence sources</span>
                     </Button>
@@ -259,7 +258,6 @@ function AppPage() {
                     <div className="overflow-y-auto overscroll-contain">{evidence}</div>
                   </DrawerContent>
                 </Drawer>
-              ) : null}
             </>
           }
         />
@@ -353,7 +351,7 @@ function AppPage() {
             ) : null}
           </main>
 
-          <aside className="elev-2 hidden max-h-[calc(100vh-8rem)] overflow-y-auto rounded-xl border border-border bg-card lg:block">
+          <aside className="elev-2 sticky top-24 hidden max-h-[calc(100vh-8rem)] overflow-y-auto rounded-xl border border-border bg-card xl:block">
             <h2 className="sticky top-0 z-10 border-b border-border bg-card/95 px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground backdrop-blur">
               Evidence
             </h2>
