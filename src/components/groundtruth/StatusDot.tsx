@@ -1,11 +1,6 @@
-import { statusTone, type ClaimStatus } from "@/lib/groundtruth/types";
+import { statusStyle } from "@/lib/groundtruth/statusStyles";
+import type { ClaimStatus } from "@/lib/groundtruth/types";
 import { cn } from "@/lib/utils";
-
-const TONE_CLASS: Record<string, string> = {
-  good: "bg-accent-green",
-  warn: "bg-accent-yellow",
-  bad: "bg-accent-red",
-};
 
 export function StatusDot({
   status,
@@ -17,18 +12,16 @@ export function StatusDot({
   pending?: boolean | undefined;
   className?: string | undefined;
 }) {
-  if (pending || !status) {
-    return (
-      <span
-        aria-hidden="true"
-        className={cn("inline-block size-2 animate-pulse rounded-full bg-muted-foreground", className)}
-      />
-    );
-  }
+  const style = statusStyle(pending ? null : status);
   return (
     <span
       aria-hidden="true"
-      className={cn("inline-block size-2 rounded-full", TONE_CLASS[statusTone(status)], className)}
+      className={cn(
+        "inline-block size-4 shrink-0 rounded-full ring-4",
+        style.dot,
+        (pending || !status) && "animate-pulse",
+        className,
+      )}
     />
   );
 }

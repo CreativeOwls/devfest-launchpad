@@ -9,6 +9,7 @@ import { ActivityBand } from "@/components/groundtruth/ActivityBand";
 import { AnswerBody } from "@/components/groundtruth/AnswerBody";
 
 import { ContextStrip } from "@/components/groundtruth/ContextStrip";
+import { StatusLegend } from "@/components/groundtruth/StatusLegend";
 import { SourcePanel } from "@/components/groundtruth/SourcePanel";
 import { EvidencePanel } from "@/components/groundtruth/EvidencePanel";
 import { GroundingScore } from "@/components/groundtruth/GroundingScore";
@@ -309,10 +310,13 @@ function AppPage() {
                   ocrText={result.ocrText}
                 />
 
-                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                  {result.claims.length} claim{result.claims.length === 1 ? "" : "s"} detected ·{" "}
-                  {revealedCount} judged
-                </p>
+                <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-lg border border-border bg-secondary/40 px-3 py-2">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                    {result.claims.length} claim{result.claims.length === 1 ? "" : "s"} detected ·{" "}
+                    {revealedCount} judged
+                  </p>
+                  <StatusLegend />
+                </div>
 
                 <article className="card-elevated rounded-xl border border-border bg-card p-5 sm:p-6">
                   <AnswerBody

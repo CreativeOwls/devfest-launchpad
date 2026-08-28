@@ -67,7 +67,13 @@
   --color-accent-green: var(--accent-green);
   --color-brand: var(--brand);
   --color-brand-ink: var(--brand-ink);
+  --color-status-primary: var(--status-primary);
+  --color-status-corroborated: var(--status-corroborated);
+  --color-status-weak: var(--status-weak);
+  --color-status-untraceable: var(--status-untraceable);
+  --color-status-contradicted: var(--status-contradicted);
 }
+
 
 :root {
   --radius: 0.625rem;
@@ -104,6 +110,14 @@
   --accent-green: oklch(0.74 0.12 148);
   --brand: oklch(0.74 0.12 148);
   --brand-ink: oklch(0.44 0.02 250);
+
+  /* Claim status system — dark defaults */
+  --status-primary: oklch(0.74 0.13 148);
+  --status-corroborated: oklch(0.72 0.10 225);
+  --status-weak: oklch(0.82 0.13 82);
+  --status-untraceable: oklch(0.70 0.015 264);
+  --status-contradicted: oklch(0.68 0.16 25);
+
 
   --chart-1: var(--accent-blue);
   --chart-2: var(--accent-red);
@@ -155,6 +169,14 @@
   --accent-green: oklch(0.52 0.12 150);
   --brand: oklch(0.50 0.11 150);
   --brand-ink: oklch(0.30 0.02 250);
+
+  /* Claim status system — light app theme (saturated, print-legible) */
+  --status-primary: oklch(0.52 0.14 150);
+  --status-corroborated: oklch(0.55 0.11 225);
+  --status-weak: oklch(0.66 0.15 75);
+  --status-untraceable: oklch(0.58 0.012 264);
+  --status-contradicted: oklch(0.53 0.19 27);
+
 
   --shadow-card: 0 1px 2px oklch(0.2 0.02 264 / 0.05), 0 6px 20px -12px oklch(0.2 0.02 264 / 0.25);
 

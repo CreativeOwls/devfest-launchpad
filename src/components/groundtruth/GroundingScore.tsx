@@ -1,18 +1,19 @@
 import { ChevronDown } from "lucide-react";
 import { useState } from "react";
 
+import { scoreStatusStyle } from "@/lib/groundtruth/statusStyles";
 import { STATUS_WEIGHTS, type Claim } from "@/lib/groundtruth/types";
 import { cn } from "@/lib/utils";
 
 export function GroundingScore({ claims, score }: { claims: Claim[]; score: number }) {
   const [open, setOpen] = useState(false);
 
-  const tone =
-    score >= 70 ? "text-accent-green" : score >= 40 ? "text-accent-yellow" : "text-accent-red";
+  const style = scoreStatusStyle(score);
   const total = claims.reduce((sum, c) => sum + (STATUS_WEIGHTS[c.status] ?? 0), 0);
 
   return (
-    <div className="card-elevated rounded-xl border border-border bg-card p-4">
+    <div className={cn("card-elevated relative overflow-hidden rounded-xl border p-4 pl-5", style.wash)}>
+      <span aria-hidden="true" className={cn("absolute inset-y-0 left-0 w-1.5", style.bar)} />
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -20,10 +21,10 @@ export function GroundingScore({ claims, score }: { claims: Claim[]; score: numb
         aria-expanded={open}
       >
         <span className="inline-flex items-center gap-2">
-          <span className="rounded-md border border-border bg-secondary px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+          <span className={cn("rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em]", style.pill)}>
             Grounded
           </span>
-          <span className={cn("text-2xl font-bold tabular-nums tracking-tight", tone)}>
+          <span className={cn("text-4xl font-extrabold tabular-nums tracking-tight", style.text)}>
             {score}%
           </span>
         </span>

@@ -1,4 +1,6 @@
 import { StatusDot } from "@/components/groundtruth/StatusDot";
+import { StatusPill } from "@/components/groundtruth/StatusPill";
+import { statusStyle } from "@/lib/groundtruth/statusStyles";
 import type { Claim } from "@/lib/groundtruth/types";
 import { cn } from "@/lib/utils";
 
@@ -25,48 +27,67 @@ export function AnswerBody({ answer, claims, activeClaimId, onSelectClaim }: Pro
   const sentences = splitSentences(answer);
 
   return (
-    <div className="space-y-2 text-[15px] leading-relaxed">
+    <div className="space-y-3 text-[15px] leading-relaxed">
       {sentences.map((sentence, index) => {
         const citations = [...sentence.matchAll(/\[(\d+)\]/g)].map((m) => Number(m[1]));
         const claim = citations.map((n) => claimByCitation.get(n)).find(Boolean) ?? null;
         const isActive = claim !== null && claim.id === activeClaimId;
         const parts = sentence.split(/(\[\d+\])/g);
+        const style = statusStyle(claim?.status ?? null);
 
         return (
-          <p
+          <div
             key={index}
             onClick={() => claim && onSelectClaim(claim.id)}
             className={cn(
-              "flex gap-2 rounded-md px-2 py-1 transition-colors",
-              claim && "cursor-pointer hover:bg-secondary/50",
-              isActive && "bg-secondary/70",
+              "relative overflow-hidden rounded-lg px-3 py-2.5 pl-4 transition-all",
+              claim
+                ? cn("cursor-pointer border", style.wash)
+                : "border border-transparent px-2 py-1 pl-2",
+              isActive && claim && "shadow-sm ring-2 ring-accent-blue/30",
             )}
           >
-            <StatusDot status={claim?.status} pending={!claim} className="mt-2 shrink-0" />
-            <span>
-              {parts.map((part, i) => {
-                const match = part.match(/^\[(\d+)\]$/);
-                if (!match) return <span key={i}>{part}</span>;
-                const number = Number(match[1]);
-                const target = claimByCitation.get(number);
-                return (
-                  <button
-                    key={i}
-                    type="button"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      if (target) onSelectClaim(target.id);
-                    }}
-                    className="mx-0.5 rounded bg-secondary px-1 text-[11px] tabular-nums text-accent-blue align-super hover:bg-secondary/70"
-                  >
-                    {number}
-                  </button>
-                );
-              })}
-            </span>
-          </p>
+            {claim ? (
+              <span
+                aria-hidden="true"
+                className={cn("absolute inset-y-0 left-0 w-1.5", style.bar)}
+              />
+            ) : null}
+            <div className="flex gap-3">
+              <StatusDot status={claim?.status} pending={!claim} className="mt-1" />
+              <div className="min-w-0 flex-1">
+                <span>
+                  {parts.map((part, i) => {
+                    const match = part.match(/^\[(\d+)\]$/);
+                    if (!match) return <span key={i}>{part}</span>;
+                    const number = Number(match[1]);
+                    const target = claimByCitation.get(number);
+                    return (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          if (target) onSelectClaim(target.id);
+                        }}
+                        className="mx-0.5 rounded bg-secondary px-1 text-[11px] tabular-nums text-accent-blue align-super hover:bg-secondary/70"
+                      >
+                        {number}
+                      </button>
+                    );
+                  })}
+                </span>
+                {claim ? (
+                  <div className="mt-2">
+                    <StatusPill status={claim.status} />
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          </div>
         );
       })}
+
     </div>
   );
 }
