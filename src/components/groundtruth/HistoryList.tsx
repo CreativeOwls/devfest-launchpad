@@ -16,11 +16,12 @@ function relativeTime(iso: string): string {
 }
 
 function scoreClasses(score: number | null): string {
-  if (score === null) return "border-border text-muted-foreground";
-  if (score >= 70) return "border-accent-green/40 text-accent-green";
-  if (score >= 40) return "border-accent-yellow/40 text-accent-yellow";
-  return "border-accent-red/40 text-accent-red";
+  if (score === null) return "border-border bg-secondary text-muted-foreground";
+  if (score >= 70) return "border-accent-green/40 bg-accent-green/10 text-accent-green";
+  if (score >= 40) return "border-accent-yellow/45 bg-accent-yellow/10 text-accent-yellow";
+  return "border-accent-red/40 bg-accent-red/10 text-accent-red";
 }
+
 
 export function HistoryList({
   checks,
@@ -48,11 +49,12 @@ export function HistoryList({
               onClick={() => onSelect(check.id)}
               aria-current={activeId === check.id ? "true" : undefined}
               className={cn(
-                "w-full rounded-md border border-transparent px-3 py-2 text-left text-xs transition-colors hover:bg-secondary/60",
-                activeId === check.id && "border-accent-blue/40 bg-secondary/70",
+                "w-full rounded-lg border border-transparent px-3 py-2.5 text-left text-xs transition-colors hover:border-border hover:bg-card hover:shadow-sm",
+                activeId === check.id && "border-accent-blue/40 bg-card shadow-sm",
               )}
             >
-              <span className="line-clamp-2 text-foreground/90">
+              <span className="line-clamp-2 font-medium leading-snug text-foreground/90">
+
                 {title.length > 60 ? `${title.slice(0, 60)}…` : title}
               </span>
               <span className="mt-1 flex items-center gap-2">

@@ -12,22 +12,27 @@ export function GroundingScore({ claims, score }: { claims: Claim[]; score: numb
   const total = claims.reduce((sum, c) => sum + (STATUS_WEIGHTS[c.status] ?? 0), 0);
 
   return (
-    <div className="rounded-lg border border-border bg-card/40 p-3">
+    <div className="card-elevated rounded-xl border border-border bg-card p-4">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
         className="flex w-full items-center justify-between gap-2 text-left"
         aria-expanded={open}
       >
-        <span className="text-sm font-semibold tracking-tight">
-          <span className="text-muted-foreground">GROUNDED </span>
-          <span className={tone}>{score}%</span>
+        <span className="inline-flex items-center gap-2">
+          <span className="rounded-md border border-border bg-secondary px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+            Grounded
+          </span>
+          <span className={cn("text-2xl font-bold tabular-nums tracking-tight", tone)}>
+            {score}%
+          </span>
         </span>
         <ChevronDown
           className={cn("size-4 text-muted-foreground transition-transform", open && "rotate-180")}
           aria-hidden="true"
         />
       </button>
+
 
       {open ? (
         <div className="mt-3 space-y-2 border-t border-border pt-3 text-xs text-muted-foreground">

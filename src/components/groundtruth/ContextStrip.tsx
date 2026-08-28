@@ -7,15 +7,17 @@ export function ContextStrip({ text, label = "Pasted post" }: { text: string; la
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="rounded-lg border border-border bg-card/40">
+    <div className="rounded-xl border border-border bg-secondary/60">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
-        className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left"
+        className="flex w-full items-center justify-between gap-3 px-3.5 py-2.5 text-left"
       >
         <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
-          <span className="mr-2 uppercase tracking-wide text-foreground/60">{label}</span>
+          <span className="mr-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-foreground/60">
+            {label}
+          </span>
           {text}
         </span>
         <ChevronDown
@@ -24,7 +26,7 @@ export function ContextStrip({ text, label = "Pasted post" }: { text: string; la
         />
       </button>
       {open ? (
-        <p className="whitespace-pre-wrap border-t border-border px-3 py-2 text-xs leading-relaxed text-muted-foreground">
+        <p className="whitespace-pre-wrap border-t border-border px-3.5 py-2.5 text-xs leading-relaxed text-muted-foreground">
           {text}
         </p>
       ) : null}

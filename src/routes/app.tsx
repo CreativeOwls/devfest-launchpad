@@ -5,7 +5,9 @@ import { Menu, Plus } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
+import { ActivityBand } from "@/components/groundtruth/ActivityBand";
 import { AnswerBody } from "@/components/groundtruth/AnswerBody";
+
 import { ContextStrip } from "@/components/groundtruth/ContextStrip";
 import { EvidencePanel } from "@/components/groundtruth/EvidencePanel";
 import { GroundingScore } from "@/components/groundtruth/GroundingScore";
@@ -196,135 +198,145 @@ function AppPage() {
   const showHero = heroExpanded || (!result && !mutation.isPending);
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <header className="sticky top-0 z-20 border-b border-border bg-background/85 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3">
-          <div className="flex min-w-0 items-center gap-2">
-            <Sheet open={historyOpen} onOpenChange={setHistoryOpen}>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="lg:hidden" aria-label="History">
-                  <Menu className="size-4" aria-hidden="true" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="left" className="w-80 overflow-y-auto">
-                <SheetHeader>
-                  <SheetTitle>History</SheetTitle>
-                </SheetHeader>
-                <div className="px-2 pb-6">{historyPanel}</div>
-              </SheetContent>
-            </Sheet>
-            <div className="min-w-0">
-              <h1 className="wordmark truncate text-xl">GroundTruth</h1>
-              <p className="text-[11px] text-muted-foreground">Answers with receipts.</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button variant="secondary" size="sm" className="gap-1" onClick={newCheck}>
-              <Plus className="size-4" aria-hidden="true" />
-              New Check
-            </Button>
-            {isMobile ? (
-              <Drawer open={drawerOpen} onOpenChange={setDrawerOpen}>
-                <DrawerTrigger asChild>
-                  <Button variant="secondary" size="sm">
-                    Evidence ({claims.reduce((n, c) => n + c.sources.length, 0)})
+    <div className="app-theme relative min-h-screen text-foreground">
+      <div
+        aria-hidden="true"
+        className="grid-paper pointer-events-none fixed inset-0 opacity-70"
+      />
+      <div className="relative">
+        <ActivityBand
+          pending={mutation.isPending}
+          stage={stage}
+          result={result}
+          revealedCount={revealedCount}
+          stats={result?.retrievalStats}
+          actions={
+            <>
+              <Sheet open={historyOpen} onOpenChange={setHistoryOpen}>
+                <SheetTrigger asChild>
+                  <Button variant="ghost" size="icon" className="lg:hidden" aria-label="History">
+                    <Menu className="size-4" aria-hidden="true" />
                   </Button>
-                </DrawerTrigger>
-                <DrawerContent className="max-h-[85vh]">
-                  <DrawerHeader>
-                    <DrawerTitle>Evidence</DrawerTitle>
-                  </DrawerHeader>
-                  <div className="overflow-y-auto">{evidence}</div>
-                </DrawerContent>
-              </Drawer>
-            ) : null}
-          </div>
-        </div>
-      </header>
-
-      <div className="mx-auto grid max-w-7xl gap-6 px-4 py-6 lg:grid-cols-[220px_minmax(0,1fr)_380px]">
-        <aside className="hidden lg:block">
-          <div className="flex items-center justify-between px-3 pb-2">
-            <h2 className="text-[11px] uppercase tracking-wide text-muted-foreground">History</h2>
-            <button
-              type="button"
-              onClick={newCheck}
-              aria-label="Start a new check"
-              className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-secondary/60 hover:text-foreground"
-            >
-              <Plus className="size-4" aria-hidden="true" />
-            </button>
-          </div>
-          <div className="max-h-[calc(100vh-9rem)] overflow-y-auto">{historyPanel}</div>
-        </aside>
-
-        <main className="min-w-0 space-y-4">
-          <HeroInput
-            value={input}
-            onChange={setInput}
-            attachment={attachment}
-            onAttach={setAttachment}
-            onClearAttachment={() => setAttachment(null)}
-            onSubmit={submit}
-            pending={busy}
-            compact={!showHero}
-            onExpand={() => setHeroExpanded(true)}
-            onInvalidFile={(message) => toast.error(message)}
-          />
-
-          {mutation.isPending ? (
-            <div className="rounded-lg border border-border bg-card/40 p-4">
-              <p className="text-sm text-foreground">{STAGES[stage]}</p>
-              <div className="mt-3 h-1 w-full overflow-hidden rounded-full bg-secondary">
-                <div className="h-full w-1/3 animate-[pulse_1.4s_ease-in-out_infinite] bg-accent-blue" />
-              </div>
-            </div>
-          ) : null}
-
-          {ocrText && mutation.isPending ? (
-            <ContextStrip text={ocrText} label="Read from screenshot" />
-          ) : null}
-
-          {result ? (
-            <div className="space-y-4">
-              {result.inputKind !== "question" ? (
-                <ContextStrip
-                  text={result.inputText}
-                  label={result.inputKind === "image" ? "Read from screenshot" : "Pasted post"}
-                />
+                </SheetTrigger>
+                <SheetContent side="left" className="app-theme w-80 overflow-y-auto">
+                  <SheetHeader>
+                    <SheetTitle>History</SheetTitle>
+                  </SheetHeader>
+                  <div className="px-2 pb-6">{historyPanel}</div>
+                </SheetContent>
+              </Sheet>
+              <Button variant="default" size="sm" className="gap-1 rounded-full" onClick={newCheck}>
+                <Plus className="size-4" aria-hidden="true" />
+                New Check
+              </Button>
+              {isMobile ? (
+                <Drawer open={drawerOpen} onOpenChange={setDrawerOpen}>
+                  <DrawerTrigger asChild>
+                    <Button variant="outline" size="sm" className="rounded-full">
+                      Evidence ({claims.reduce((n, c) => n + c.sources.length, 0)})
+                    </Button>
+                  </DrawerTrigger>
+                  <DrawerContent className="app-theme max-h-[85vh]">
+                    <DrawerHeader>
+                      <DrawerTitle>Evidence</DrawerTitle>
+                    </DrawerHeader>
+                    <div className="overflow-y-auto">{evidence}</div>
+                  </DrawerContent>
+                </Drawer>
               ) : null}
+            </>
+          }
+        />
 
-              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                {result.claims.length} claim{result.claims.length === 1 ? "" : "s"} detected ·{" "}
-                {revealedCount} judged
-              </p>
-
-              <AnswerBody
-                answer={result.answer}
-                claims={result.claims}
-                activeClaimId={activeClaimId}
-                onSelectClaim={selectClaim}
-              />
-
-              <GroundingScore claims={result.claims} score={result.groundingScore} />
+        <div className="mx-auto grid max-w-7xl gap-8 px-4 py-8 lg:grid-cols-[230px_minmax(0,1fr)_390px]">
+          <aside className="hidden lg:block">
+            <div className="flex items-center justify-between px-1 pb-2">
+              <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                History
+              </h2>
+              <button
+                type="button"
+                onClick={newCheck}
+                aria-label="Start a new check"
+                className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+              >
+                <Plus className="size-4" aria-hidden="true" />
+              </button>
             </div>
-          ) : null}
+            <div className="max-h-[calc(100vh-11rem)] overflow-y-auto">{historyPanel}</div>
+          </aside>
 
-          {!result && !mutation.isPending ? (
-            <p className="text-center text-sm text-muted-foreground">
-              GroundTruth breaks your input into atomic claims, retrieves real sources for each one,
-              grades them by tier, and answers with inline citations.
-            </p>
-          ) : null}
-        </main>
+          <main className="min-w-0 space-y-5">
+            <HeroInput
+              value={input}
+              onChange={setInput}
+              attachment={attachment}
+              onAttach={setAttachment}
+              onClearAttachment={() => setAttachment(null)}
+              onSubmit={submit}
+              pending={busy}
+              compact={!showHero}
+              onExpand={() => setHeroExpanded(true)}
+              onInvalidFile={(message) => toast.error(message)}
+            />
 
-        <aside className="hidden max-h-[calc(100vh-6rem)] overflow-y-auto rounded-lg border border-border bg-card/20 lg:block">
-          <h2 className="sticky top-0 z-10 border-b border-border bg-card/80 px-4 py-2 text-[11px] uppercase tracking-wide text-muted-foreground backdrop-blur">
-            Evidence
-          </h2>
-          {evidence}
-        </aside>
+            {mutation.isPending ? (
+              <div className="card-elevated rounded-xl border border-border bg-card p-4">
+                <p className="text-sm font-medium text-foreground">{STAGES[stage]}</p>
+                <div className="mt-3 h-1 w-full overflow-hidden rounded-full bg-secondary">
+                  <div className="h-full w-1/3 animate-[pulse_1.4s_ease-in-out_infinite] rounded-full bg-accent-blue" />
+                </div>
+              </div>
+            ) : null}
+
+            {ocrText && mutation.isPending ? (
+              <ContextStrip text={ocrText} label="Read from screenshot" />
+            ) : null}
+
+            {result ? (
+              <div className="space-y-5">
+                {result.inputKind !== "question" ? (
+                  <ContextStrip
+                    text={result.inputText}
+                    label={result.inputKind === "image" ? "Read from screenshot" : "Pasted post"}
+                  />
+                ) : null}
+
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                  {result.claims.length} claim{result.claims.length === 1 ? "" : "s"} detected ·{" "}
+                  {revealedCount} judged
+                </p>
+
+                <article className="card-elevated rounded-xl border border-border bg-card p-5 sm:p-6">
+                  <AnswerBody
+                    answer={result.answer}
+                    claims={result.claims}
+                    activeClaimId={activeClaimId}
+                    onSelectClaim={selectClaim}
+                  />
+                </article>
+
+                <GroundingScore claims={result.claims} score={result.groundingScore} />
+              </div>
+            ) : null}
+
+            {!result && !mutation.isPending ? (
+              <p className="mx-auto max-w-xl text-center text-sm leading-relaxed text-muted-foreground">
+                GroundTruth breaks your input into atomic claims, retrieves real sources for each
+                one, grades them by tier, and answers with inline citations.
+              </p>
+            ) : null}
+          </main>
+
+          <aside className="card-elevated hidden max-h-[calc(100vh-8rem)] overflow-y-auto rounded-xl border border-border bg-card lg:block">
+            <h2 className="sticky top-0 z-10 border-b border-border bg-card/95 px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground backdrop-blur">
+              Evidence
+            </h2>
+            {evidence}
+          </aside>
+        </div>
       </div>
     </div>
   );
 }
+
