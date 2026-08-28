@@ -5,7 +5,9 @@ import { Menu, Plus } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
+import { ActivityBand } from "@/components/groundtruth/ActivityBand";
 import { AnswerBody } from "@/components/groundtruth/AnswerBody";
+
 import { ContextStrip } from "@/components/groundtruth/ContextStrip";
 import { EvidencePanel } from "@/components/groundtruth/EvidencePanel";
 import { GroundingScore } from "@/components/groundtruth/GroundingScore";
