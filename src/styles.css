@@ -553,3 +553,127 @@
     transform: none;
   }
 }
+
+/* ── Key action buttons (Check It / New Check) ───────────────────────── */
+@keyframes gt-cta-halo {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.98);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.05);
+  }
+}
+@keyframes gt-cta-scan {
+  from {
+    background-position: -160% 0;
+  }
+  to {
+    background-position: 260% 0;
+  }
+}
+@keyframes gt-cta-ring {
+  0% {
+    opacity: 0.55;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.35);
+  }
+}
+
+@utility gt-cta {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  transition:
+    transform 160ms var(--ease-instrument, ease-out),
+    box-shadow 220ms var(--ease-instrument, ease-out),
+    filter 220ms var(--ease-instrument, ease-out);
+}
+/* soft breathing halo */
+.gt-cta::before {
+  content: "";
+  position: absolute;
+  inset: -35%;
+  z-index: -1;
+  pointer-events: none;
+  border-radius: inherit;
+  background: radial-gradient(
+    50% 50% at 50% 50%,
+    color-mix(in oklab, var(--brand) 55%, transparent) 0%,
+    transparent 70%
+  );
+  opacity: 0;
+  filter: blur(10px);
+  transition: opacity 240ms var(--ease-instrument, ease-out);
+}
+.gt-cta:hover::before,
+.gt-cta:focus-visible::before {
+  opacity: 1;
+  animation: gt-cta-halo 2.4s ease-in-out infinite;
+}
+/* light scan sweep on hover */
+.gt-cta::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  border-radius: inherit;
+  background: linear-gradient(
+    100deg,
+    transparent 38%,
+    oklch(1 0 0 / 0.32) 50%,
+    transparent 62%
+  );
+  background-size: 220% 100%;
+  background-position: -160% 0;
+  opacity: 0;
+}
+.gt-cta:hover::after,
+.gt-cta:focus-visible::after {
+  opacity: 1;
+  animation: gt-cta-scan 780ms var(--ease-instrument, ease-out) 1;
+}
+.gt-cta:hover {
+  transform: translateY(-1px) scale(1.025);
+  box-shadow: var(--elev-2);
+}
+.gt-cta:active {
+  transform: translateY(1px) scale(0.975);
+  box-shadow: var(--elev-1);
+}
+.gt-cta:disabled {
+  transform: none;
+}
+/* pulsing radar rings while a check is running */
+.gt-cta-busy::before {
+  opacity: 1;
+  animation: gt-cta-ring 1.4s var(--ease-instrument, ease-out) infinite;
+}
+/* icon nudge */
+.gt-cta svg {
+  transition: transform 220ms var(--ease-instrument, ease-out);
+}
+.gt-cta:hover svg {
+  transform: rotate(90deg) scale(1.08);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gt-cta,
+  .gt-cta:hover,
+  .gt-cta:active {
+    transform: none;
+  }
+  .gt-cta::before,
+  .gt-cta::after,
+  .gt-cta-busy::before,
+  .gt-cta:hover svg {
+    animation: none !important;
+    transform: none;
+  }
+}
