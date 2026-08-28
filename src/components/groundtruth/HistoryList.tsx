@@ -1,3 +1,4 @@
+import { scoreStatusStyle } from "@/lib/groundtruth/statusStyles";
 import type { CheckSummary } from "@/lib/groundtruth/types";
 import { cn } from "@/lib/utils";
 
@@ -16,10 +17,7 @@ function relativeTime(iso: string): string {
 }
 
 function scoreClasses(score: number | null): string {
-  if (score === null) return "border-border bg-secondary text-muted-foreground";
-  if (score >= 70) return "border-accent-green/40 bg-accent-green/10 text-accent-green";
-  if (score >= 40) return "border-accent-yellow/45 bg-accent-yellow/10 text-accent-yellow";
-  return "border-accent-red/40 bg-accent-red/10 text-accent-red";
+  return `${scoreStatusStyle(score).pill} font-bold`;
 }
 
 
