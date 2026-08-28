@@ -12,9 +12,10 @@ export function StatusDot({
   pending,
   className,
 }: {
-  status?: ClaimStatus;
-  pending?: boolean;
-  className?: string;
+  status?: ClaimStatus | undefined;
+  // optional-undefined for exactOptionalPropertyTypes
+  pending?: boolean | undefined;
+  className?: string | undefined;
 }) {
   if (pending || !status) {
     return (
