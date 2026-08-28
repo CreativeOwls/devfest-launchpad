@@ -65,6 +65,8 @@
   --color-accent-red: var(--accent-red);
   --color-accent-yellow: var(--accent-yellow);
   --color-accent-green: var(--accent-green);
+  --color-brand: var(--brand);
+  --color-brand-ink: var(--brand-ink);
 }
 
 :root {
@@ -82,24 +84,26 @@
   --secondary: oklch(0.24 0.016 264);
   --secondary-foreground: oklch(0.985 0.002 250);
   --muted: oklch(0.24 0.016 264);
-  --muted-foreground: oklch(0.70 0.02 258);
+  --muted-foreground: oklch(0.72 0.018 250);
   --accent: oklch(0.26 0.018 264);
   --accent-foreground: oklch(0.985 0.002 250);
   --destructive: oklch(0.62 0.15 27);
   --destructive-foreground: oklch(0.985 0.002 250);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 14%);
-  --ring: oklch(0.55 0.027 264);
+  --ring: oklch(0.74 0.12 148);
 
   /* Inverted surface for the light pill button */
   --surface-invert: oklch(0.985 0.002 250);
   --surface-invert-foreground: oklch(0.15 0.012 264);
 
-  /* Muted, desaturated brand accents */
-  --accent-blue: oklch(0.68 0.11 250);
+  /* Brand accents derived from the logo (green + slate ink) */
+  --accent-blue: oklch(0.66 0.06 235);
   --accent-red: oklch(0.66 0.13 25);
   --accent-yellow: oklch(0.83 0.11 90);
-  --accent-green: oklch(0.72 0.11 150);
+  --accent-green: oklch(0.74 0.12 148);
+  --brand: oklch(0.74 0.12 148);
+  --brand-ink: oklch(0.44 0.02 250);
 
   --chart-1: var(--accent-blue);
   --chart-2: var(--accent-red);
@@ -127,28 +131,30 @@
   --card-foreground: oklch(0.20 0.012 264);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.20 0.012 264);
-  --primary: oklch(0.42 0.10 255);
+  --primary: oklch(0.50 0.11 150);
   --primary-foreground: oklch(0.99 0.002 250);
   --secondary: oklch(0.965 0.004 264);
   --secondary-foreground: oklch(0.25 0.012 264);
   --muted: oklch(0.965 0.004 264);
-  --muted-foreground: oklch(0.52 0.014 264);
-  --accent: oklch(0.955 0.008 255);
-  --accent-foreground: oklch(0.28 0.03 255);
+  --muted-foreground: oklch(0.48 0.018 250);
+  --accent: oklch(0.955 0.02 150);
+  --accent-foreground: oklch(0.34 0.07 150);
   --destructive: oklch(0.55 0.17 27);
   --destructive-foreground: oklch(0.99 0.002 250);
-  --border: oklch(0.90 0.005 264);
-  --input: oklch(0.88 0.006 264);
-  --ring: oklch(0.42 0.10 255);
+  --border: oklch(0.90 0.005 250);
+  --input: oklch(0.88 0.006 250);
+  --ring: oklch(0.50 0.11 150);
 
   --surface-invert: oklch(0.20 0.012 264);
   --surface-invert-foreground: oklch(0.99 0.002 250);
 
   /* Ink-toned, print-like accents */
-  --accent-blue: oklch(0.45 0.11 255);
+  --accent-blue: oklch(0.45 0.07 235);
   --accent-red: oklch(0.52 0.16 27);
   --accent-yellow: oklch(0.62 0.12 80);
-  --accent-green: oklch(0.52 0.11 152);
+  --accent-green: oklch(0.52 0.12 150);
+  --brand: oklch(0.50 0.11 150);
+  --brand-ink: oklch(0.30 0.02 250);
 
   --shadow-card: 0 1px 2px oklch(0.2 0.02 264 / 0.05), 0 6px 20px -12px oklch(0.2 0.02 264 / 0.25);
 
@@ -200,8 +206,8 @@
 @utility ambient-glow {
   background: radial-gradient(
     circle at 50% 50%,
-    oklch(0.72 0.05 258 / 0.20) 0%,
-    oklch(0.6 0.05 258 / 0.09) 35%,
+    oklch(0.74 0.10 148 / 0.18) 0%,
+    oklch(0.6 0.08 148 / 0.08) 35%,
     transparent 70%
   );
 }
