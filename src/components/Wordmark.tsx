@@ -16,6 +16,7 @@ const HOVER_COLORS = [
 export function Wordmark({ text }: { text: string }) {
   const [hovered, setHovered] = useState<number | null>(null);
   const characters = [...text];
+  const brandSplit = text.indexOf("Truth");
   const lastIndex = characters.length - 1;
 
   return (
@@ -36,6 +37,7 @@ export function Wordmark({ text }: { text: string }) {
             className={cn(
               "inline-block transition-colors duration-300",
               char === " " && "w-[0.25em]",
+              brandSplit >= 0 && index >= brandSplit && !isHovered && "text-accent-green",
               isLast && !isHovered && "letter-cycle",
               isHovered && HOVER_COLORS[index % HOVER_COLORS.length],
             )}

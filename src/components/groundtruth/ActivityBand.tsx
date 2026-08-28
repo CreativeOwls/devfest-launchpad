@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { LIMITS, type RetrievalStats } from "@/lib/groundtruth/limits";
 import { statusTone, type CheckResult } from "@/lib/groundtruth/types";
 import { cn } from "@/lib/utils";
+import logoAsset from "@/assets/groundtruth-logo.png.asset.json";
 
 export const PIPELINE_STAGES = [
   "Decomposing claims",
@@ -111,7 +112,11 @@ export function ActivityBand({
     <header className="sticky top-0 z-30 w-full border-b border-border bg-background/90 backdrop-blur">
       <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-2">
         <div className="flex min-w-0 items-center gap-2">
-          <span className="wordmark shrink-0 text-base tracking-tight">GroundTruth</span>
+          <img
+            src={logoAsset.url}
+            alt="GroundTruth"
+            className="h-6 w-auto shrink-0 object-contain"
+          />
           <span className="hidden text-[11px] text-muted-foreground sm:inline">
             Answers with receipts.
           </span>
@@ -122,7 +127,7 @@ export function ActivityBand({
             <span
               className={cn(
                 "inline-block size-1.5 rounded-full",
-                active ? "animate-pulse bg-accent-blue" : "bg-accent-green",
+                active ? "animate-pulse bg-brand" : "bg-brand/50",
               )}
               aria-hidden="true"
             />
@@ -159,7 +164,7 @@ export function ActivityBand({
                   className={cn(
                     "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 transition-colors",
                     current
-                      ? "border-accent-blue/50 bg-accent-blue/10 text-accent-blue"
+                      ? "border-brand/50 bg-brand/10 text-brand"
                       : done
                         ? "border-accent-green/40 text-accent-green"
                         : "border-border text-muted-foreground",
