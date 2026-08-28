@@ -1,6 +1,6 @@
 import { StatusDot } from "@/components/groundtruth/StatusDot";
 import { StatusPill } from "@/components/groundtruth/StatusPill";
-import { statusStyle } from "@/lib/groundtruth/statusStyles";
+import { claimConfidence, statusStyle } from "@/lib/groundtruth/statusStyles";
 import type { Claim } from "@/lib/groundtruth/types";
 import { cn } from "@/lib/utils";
 
@@ -33,17 +33,18 @@ export function AnswerBody({ answer, claims, activeClaimId, onSelectClaim }: Pro
         const claim = citations.map((n) => claimByCitation.get(n)).find(Boolean) ?? null;
         const isActive = claim !== null && claim.id === activeClaimId;
         const parts = sentence.split(/(\[\d+\])/g);
-        const style = statusStyle(claim?.status ?? null);
+        const confidence = claim ? claimConfidence(claim) : 1;
+        const style = statusStyle(claim?.status ?? null, confidence);
 
         return (
           <div
             key={index}
             onClick={() => claim && onSelectClaim(claim.id)}
-            style={{ animationDelay: `${Math.min(index, 10) * 45}ms` }}
+            style={{ animationDelay: `${Math.min(index, 10) * 45}ms`, ...(claim ? style.wash : {}) }}
             className={cn(
               "gt-rise relative overflow-hidden rounded-lg px-3 py-2.5 pl-4 transition-all duration-200",
               claim
-                ? cn("cursor-pointer border", style.wash)
+                ? "cursor-pointer border"
                 : "border border-transparent px-2 py-1 pl-2",
               isActive && claim && "shadow-sm ring-2 ring-accent-blue/30",
             )}
@@ -51,11 +52,12 @@ export function AnswerBody({ answer, claims, activeClaimId, onSelectClaim }: Pro
             {claim ? (
               <span
                 aria-hidden="true"
-                className={cn("absolute inset-y-0 left-0 w-1.5", style.bar)}
+                style={style.bar}
+                className="absolute inset-y-0 left-0 w-1.5"
               />
             ) : null}
             <div className="flex gap-3">
-              <StatusDot status={claim?.status} pending={!claim} className="mt-1" />
+              <StatusDot status={claim?.status} pending={!claim} confidence={confidence} className="mt-1" />
               <div className="min-w-0 flex-1">
                 <span>
                   {parts.map((part, i) => {

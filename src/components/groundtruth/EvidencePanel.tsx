@@ -3,7 +3,7 @@ import { useEffect, useRef } from "react";
 import { EvidenceCard } from "@/components/groundtruth/EvidenceCard";
 import { StatusDot } from "@/components/groundtruth/StatusDot";
 import { StatusPill } from "@/components/groundtruth/StatusPill";
-import { statusStyle } from "@/lib/groundtruth/statusStyles";
+import { claimConfidence, statusStyle } from "@/lib/groundtruth/statusStyles";
 import { LIMITS, type RetrievalStats } from "@/lib/groundtruth/limits";
 import type { Claim } from "@/lib/groundtruth/types";
 import { cn } from "@/lib/utils";
@@ -70,31 +70,34 @@ export function EvidencePanel({
       ) : null}
       {claims.map((claim, index) => {
         const revealed = index < revealedCount;
-        const style = statusStyle(revealed ? claim.status : null);
+        const confidence = claimConfidence(claim);
+        const style = statusStyle(revealed ? claim.status : null, confidence);
         return (
           <section
             key={claim.id}
             data-claim-id={claim.id}
+            style={revealed ? style.wash : undefined}
             className={cn(
               "relative scroll-mt-4 overflow-hidden rounded-xl border p-3.5 pl-4 transition-all duration-500",
-              revealed ? style.wash : "border-border bg-card",
+              !revealed && "border-border bg-card",
               activeClaimId === claim.id && "shadow-sm ring-1 ring-accent-blue/30",
               revealed ? "opacity-100" : "opacity-40",
             )}
           >
             <span
               aria-hidden="true"
-              className={cn("absolute inset-y-0 left-0 w-1.5", revealed ? style.bar : "bg-border")}
+              style={revealed ? style.bar : undefined}
+              className={cn("absolute inset-y-0 left-0 w-1.5", !revealed && "bg-border")}
             />
             <div className="flex items-start gap-3">
-              <StatusDot status={revealed ? claim.status : undefined} pending={!revealed} className="mt-0.5" />
+              <StatusDot status={revealed ? claim.status : undefined} pending={!revealed} confidence={confidence} className="mt-0.5" />
               <div className="min-w-0">
                 <p className="text-sm font-medium leading-snug text-foreground">{claim.text}</p>
                 {claim.context ? (
                   <p className="mt-1 text-xs leading-snug text-muted-foreground">{claim.context}</p>
                 ) : null}
                 <div className="mt-2">
-                  <StatusPill status={revealed ? claim.status : undefined} pending={!revealed} />
+                  <StatusPill status={revealed ? claim.status : undefined} pending={!revealed} confidence={confidence} />
                 </div>
               </div>
             </div>
