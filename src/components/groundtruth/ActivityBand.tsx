@@ -115,7 +115,7 @@ export function ActivityBand({
           <img
             src={logoAsset.url}
             alt="GroundTruth"
-            className="h-6 w-auto shrink-0 object-contain"
+            className="h-10 w-auto shrink-0 object-contain sm:h-12"
           />
           <span className="hidden text-[11px] text-muted-foreground sm:inline">
             Answers with receipts.
