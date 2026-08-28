@@ -44,7 +44,7 @@ export function AnswerBody({ answer, claims, activeClaimId, onSelectClaim }: Pro
               claim
                 ? cn("cursor-pointer border", style.wash)
                 : "border border-transparent px-2 py-1 pl-2",
-              isActive && claim && "ring-2 ring-offset-1 ring-offset-card ring-current/25 shadow-sm",
+              isActive && claim && "shadow-sm ring-2 ring-accent-blue/30",
             )}
           >
             {claim ? (
