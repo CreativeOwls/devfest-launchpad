@@ -2,7 +2,8 @@ import { Check, ChevronDown, Loader2 } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import { LIMITS, type RetrievalStats } from "@/lib/groundtruth/limits";
-import { statusTone, type CheckResult } from "@/lib/groundtruth/types";
+import { statusStyle } from "@/lib/groundtruth/statusStyles";
+import type { CheckResult, ClaimStatus } from "@/lib/groundtruth/types";
 import { cn } from "@/lib/utils";
 import logoAsset from "@/assets/groundtruth-logo.png.asset.json";
 
