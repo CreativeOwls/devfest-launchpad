@@ -129,7 +129,9 @@ export function EvidencePanel({
                 {claim.sources.length === 0 ? (
                   <p className="text-xs text-muted-foreground">No retrievable source.</p>
                 ) : (
-                  claim.sources.map((source) => <EvidenceCard key={source.id} source={source} />)
+                  claim.sources.map((source, i) => (
+                    <EvidenceCard key={source.id} source={source} index={i} />
+                  ))
                 )}
               </div>
             ) : null}

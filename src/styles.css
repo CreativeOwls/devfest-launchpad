@@ -270,3 +270,119 @@
   }
 }
 
+
+/* ── Elevation system: layered, engineered surfaces ───────────────────── */
+.app-theme {
+  --elev-1:
+    0 1px 0 oklch(1 0 0 / 0.9) inset,
+    0 1px 1px oklch(0.2 0.02 264 / 0.04),
+    0 2px 6px -3px oklch(0.2 0.02 264 / 0.14);
+  --elev-2:
+    0 1px 0 oklch(1 0 0 / 0.9) inset,
+    0 1px 2px oklch(0.2 0.02 264 / 0.05),
+    0 8px 22px -14px oklch(0.2 0.02 264 / 0.35);
+  --elev-3:
+    0 1px 0 oklch(1 0 0 / 0.85) inset,
+    0 2px 4px oklch(0.2 0.02 264 / 0.06),
+    0 18px 40px -24px oklch(0.2 0.02 264 / 0.45);
+  --ease-instrument: cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+@utility elev-1 {
+  box-shadow: var(--elev-1, 0 1px 2px oklch(0.2 0.02 264 / 0.06));
+}
+@utility elev-2 {
+  box-shadow: var(--elev-2, 0 6px 20px -12px oklch(0.2 0.02 264 / 0.3));
+}
+@utility elev-3 {
+  box-shadow: var(--elev-3, 0 18px 40px -24px oklch(0.2 0.02 264 / 0.45));
+}
+
+/* Premium credential sheen for seals/badges */
+@utility seal-sheen {
+  background-image: linear-gradient(
+    150deg,
+    oklch(1 0 0 / 0.55) 0%,
+    oklch(1 0 0 / 0.05) 42%,
+    oklch(0.2 0.02 264 / 0.03) 100%
+  );
+}
+
+/* Hairline separator */
+@utility hairline {
+  border-color: color-mix(in oklab, var(--color-border) 80%, transparent);
+}
+
+/* ── Motion primitives (short, consistent easing) ─────────────────────── */
+@keyframes gt-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes gt-settle {
+  0% {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.06);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+@keyframes gt-tick {
+  0% {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+  70% {
+    transform: scale(1.18);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+@keyframes gt-caret {
+  0%,
+  100% {
+    opacity: 0.25;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@utility gt-rise {
+  animation: gt-rise 220ms var(--ease-instrument, ease-out) both;
+}
+@utility gt-settle {
+  animation: gt-settle 260ms var(--ease-instrument, ease-out) both;
+}
+@utility gt-tick {
+  animation: gt-tick 220ms var(--ease-instrument, ease-out) both;
+}
+@utility gt-caret {
+  animation: gt-caret 1.1s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gt-rise,
+  .gt-settle,
+  .gt-tick,
+  .gt-caret {
+    animation: none !important;
+  }
+  .app-theme *,
+  .app-theme *::before,
+  .app-theme *::after {
+    transition-duration: 1ms !important;
+  }
+}

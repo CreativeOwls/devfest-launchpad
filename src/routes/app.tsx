@@ -289,7 +289,7 @@ function AppPage() {
             />
 
             {mutation.isPending ? (
-              <div className="card-elevated rounded-xl border border-border bg-card p-4">
+              <div className="gt-rise elev-2 rounded-xl border border-border bg-card p-4">
                 <p className="text-sm font-medium text-foreground">{STAGES[stage]}</p>
                 <div className="mt-3 h-1 w-full overflow-hidden rounded-full bg-secondary">
                   <div className="h-full w-1/3 animate-[pulse_1.4s_ease-in-out_infinite] rounded-full bg-accent-blue" />
@@ -318,7 +318,7 @@ function AppPage() {
                   <StatusLegend />
                 </div>
 
-                <article className="card-elevated rounded-xl border border-border bg-card p-5 sm:p-6">
+                <article className="gt-rise elev-2 rounded-xl border border-border bg-card p-5 sm:p-6">
                   <AnswerBody
                     answer={result.answer}
                     claims={result.claims}
@@ -339,7 +339,7 @@ function AppPage() {
             ) : null}
           </main>
 
-          <aside className="card-elevated hidden max-h-[calc(100vh-8rem)] overflow-y-auto rounded-xl border border-border bg-card lg:block">
+          <aside className="elev-2 hidden max-h-[calc(100vh-8rem)] overflow-y-auto rounded-xl border border-border bg-card lg:block">
             <h2 className="sticky top-0 z-10 border-b border-border bg-card/95 px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground backdrop-blur">
               Evidence
             </h2>

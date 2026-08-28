@@ -35,7 +35,7 @@ export function SourcePanel({
   return (
     <section
       aria-label="Evaluated content"
-      className="card-elevated overflow-hidden rounded-xl border border-border bg-card"
+      className="gt-rise elev-1 overflow-hidden rounded-xl border border-border bg-card"
     >
       <header className="flex items-center gap-2 border-b border-border bg-secondary/50 px-4 py-2.5">
         <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">

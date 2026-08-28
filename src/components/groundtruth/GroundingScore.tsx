@@ -1,19 +1,49 @@
 import { ChevronDown } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { scoreStatusStyle } from "@/lib/groundtruth/statusStyles";
 import { STATUS_WEIGHTS, type Claim } from "@/lib/groundtruth/types";
 import { cn } from "@/lib/utils";
 
+/** Counts up to the target value; instant when reduced motion is preferred. */
+function useCountUp(target: number, duration = 700) {
+  const [value, setValue] = useState(0);
+  useEffect(() => {
+    const reduced =
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduced) {
+      setValue(target);
+      return;
+    }
+    let frame = 0;
+    const start = performance.now();
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - start) / duration);
+      const eased = 1 - Math.pow(1 - t, 3);
+      setValue(Math.round(target * eased));
+      if (t < 1) frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [target, duration]);
+  return value;
+}
+
 export function GroundingScore({ claims, score }: { claims: Claim[]; score: number }) {
   const [open, setOpen] = useState(false);
+  const shown = useCountUp(score);
 
   const style = scoreStatusStyle(score);
   const total = claims.reduce((sum, c) => sum + (STATUS_WEIGHTS[c.status] ?? 0), 0);
 
   return (
-    <div className={cn("card-elevated relative overflow-hidden rounded-xl border p-4 pl-5", style.wash)}>
+    <div className={cn("gt-rise elev-3 relative overflow-hidden rounded-xl border p-4 pl-5", style.wash)}>
       <span aria-hidden="true" className={cn("absolute inset-y-0 left-0 w-1.5", style.bar)} />
+      <span
+        aria-hidden="true"
+        className="seal-sheen pointer-events-none absolute inset-0 opacity-60"
+      />
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -21,11 +51,11 @@ export function GroundingScore({ claims, score }: { claims: Claim[]; score: numb
         aria-expanded={open}
       >
         <span className="inline-flex items-center gap-2">
-          <span className={cn("rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em]", style.pill)}>
+          <span className={cn("seal-sheen rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em] shadow-[inset_0_1px_0_oklch(1_0_0/0.6)]", style.pill)}>
             Grounded
           </span>
           <span className={cn("text-4xl font-extrabold tabular-nums tracking-tight", style.text)}>
-            {score}%
+            {shown}%
           </span>
         </span>
         <ChevronDown
