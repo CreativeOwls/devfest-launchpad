@@ -1,0 +1,2 @@
+REVOKE ALL ON FUNCTION public.gt_reserve_firecrawl_calls(INTEGER, INTEGER) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.gt_reserve_firecrawl_calls(INTEGER, INTEGER) TO service_role;

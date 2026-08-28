@@ -1,6 +1,14 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { Database } from "@/integrations/supabase/types";
+import {
+  EMPTY_RETRIEVAL_STATS,
+  LIMITS,
+  normalizeQuery,
+  normalizeUrl,
+  type CapName,
+  type RetrievalStats,
+} from "@/lib/groundtruth/limits";
 import { classifyTier, sourceNameOf } from "@/lib/groundtruth/tiers";
 import {
   computeGrounding,
@@ -18,9 +26,6 @@ const AI_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 const AI_MODEL = "google/gemini-3.7-flash";
 const FIRECRAWL_V2 = "https://api.firecrawl.dev/v2";
 
-const MAX_CLAIMS = 5;
-const SOURCES_PER_CLAIM = 3;
-const CACHE_TTL_MS = 1000 * 60 * 60 * 24 * 7;
 
 /* ---------------------------------- AI ---------------------------------- */
 
@@ -84,7 +89,7 @@ function parseJson<T>(raw: string, fallback: T): T {
   }
 }
 
-/* ------------------------------- Firecrawl ------------------------------- */
+/* --------------------------- Budget bookkeeping --------------------------- */
 
 type SearchHit = { url: string; title?: string; description?: string };
 
@@ -94,7 +99,136 @@ function firecrawlKey(): string {
   return key;
 }
 
-async function firecrawlSearch(query: string): Promise<SearchHit[]> {
+/**
+ * Per-task Firecrawl budget. Every live call must be granted here first, so the
+ * caps are enforced by a counter rather than by convention. The daily
+ * whole-app budget is reserved atomically in the database.
+ */
+class RetrievalBudget {
+  searches = 0;
+  scrapes = 0;
+  cacheHits = 0;
+  cacheMisses = 0;
+  budgetPaused = false;
+  unverifiedClaims: string[] = [];
+  private caps = new Set<CapName>();
+  private perClaimSearches = new Map<number, number>();
+  private perClaimScrapes = new Map<number, number>();
+
+  markCap(cap: CapName) {
+    this.caps.add(cap);
+  }
+
+  private get totalCalls() {
+    return this.searches + this.scrapes;
+  }
+
+  /** Reserve one live call against the whole-app daily budget. */
+  private async reserveDaily(): Promise<boolean> {
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { data, error } = await supabaseAdmin.rpc("gt_reserve_firecrawl_calls", {
+        _count: 1,
+        _daily_budget: LIMITS.dailyCallBudget,
+      });
+      if (error) {
+        console.error("[groundtruth] daily budget reservation failed", error);
+        // Fail closed: a broken counter must not become unlimited spend.
+        this.budgetPaused = true;
+        this.markCap("daily-budget");
+        return false;
+      }
+      if ((data ?? 0) < 1) {
+        this.budgetPaused = true;
+        this.markCap("daily-budget");
+        return false;
+      }
+      return true;
+    } catch (err) {
+      console.error("[groundtruth] daily budget reservation threw", err);
+      this.budgetPaused = true;
+      this.markCap("daily-budget");
+      return false;
+    }
+  }
+
+  async grantSearch(claimIndex: number): Promise<boolean> {
+    if (this.totalCalls >= LIMITS.maxCallsPerTask) {
+      this.markCap("calls-per-task");
+      return false;
+    }
+    if ((this.perClaimSearches.get(claimIndex) ?? 0) >= LIMITS.maxSearchesPerClaim) {
+      this.markCap("searches-per-claim");
+      return false;
+    }
+    if (!(await this.reserveDaily())) return false;
+    this.perClaimSearches.set(claimIndex, (this.perClaimSearches.get(claimIndex) ?? 0) + 1);
+    this.searches += 1;
+    return true;
+  }
+
+  async grantScrape(claimIndex: number): Promise<boolean> {
+    if (this.totalCalls >= LIMITS.maxCallsPerTask) {
+      this.markCap("calls-per-task");
+      return false;
+    }
+    if (this.scrapes >= LIMITS.maxScrapesPerTask) {
+      this.markCap("scrapes-per-task");
+      return false;
+    }
+    if ((this.perClaimScrapes.get(claimIndex) ?? 0) >= LIMITS.maxScrapesPerClaim) {
+      this.markCap("scrapes-per-claim");
+      return false;
+    }
+    if (!(await this.reserveDaily())) return false;
+    this.perClaimScrapes.set(claimIndex, (this.perClaimScrapes.get(claimIndex) ?? 0) + 1);
+    this.scrapes += 1;
+    return true;
+  }
+
+  /** Scrape slots left for this claim, ignoring the daily budget. */
+  claimScrapeAttemptsLeft(claimIndex: number): number {
+    return Math.max(LIMITS.maxScrapesPerClaim - (this.perClaimScrapes.get(claimIndex) ?? 0), 0);
+  }
+
+  toStats(): RetrievalStats {
+    return {
+      searches: this.searches,
+      scrapes: this.scrapes,
+      cacheHits: this.cacheHits,
+      cacheMisses: this.cacheMisses,
+      capsHit: [...this.caps],
+      budgetPaused: this.budgetPaused,
+      unverifiedClaims: this.unverifiedClaims,
+    };
+  }
+}
+
+/* ------------------------------- Firecrawl ------------------------------- */
+
+async function searchWithCache(
+  db: Db,
+  budget: RetrievalBudget,
+  claimIndex: number,
+  query: string,
+): Promise<SearchHit[]> {
+  const key = normalizeQuery(query);
+
+  const { data: cached } = await db
+    .from("gt_search_cache")
+    .select("results, fetched_at")
+    .eq("query", key)
+    .maybeSingle();
+
+  if (cached && Date.now() - new Date(cached.fetched_at).getTime() < LIMITS.searchCacheTtlMs) {
+    budget.cacheHits += 1;
+    const hits = Array.isArray(cached.results) ? (cached.results as SearchHit[]) : [];
+    return hits.filter((h) => typeof h?.url === "string");
+  }
+
+  budget.cacheMisses += 1;
+  if (!(await budget.grantSearch(claimIndex))) return [];
+
   try {
     const res = await fetch(`${FIRECRAWL_V2}/search`, {
       method: "POST",
@@ -112,8 +246,17 @@ async function firecrawlSearch(query: string): Promise<SearchHit[]> {
       data?: SearchHit[] | { web?: SearchHit[] };
     };
     const data = json.data;
-    const hits = Array.isArray(data) ? data : (data?.web ?? []);
-    return hits.filter((h) => typeof h?.url === "string");
+    const raw = Array.isArray(data) ? data : (data?.web ?? []);
+    const hits = raw
+      .filter((h) => typeof h?.url === "string")
+      .map((h) => ({ url: h.url, title: h.title ?? "", description: h.description ?? "" }));
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await supabaseAdmin
+      .from("gt_search_cache")
+      .upsert({ query: key, results: hits, fetched_at: new Date().toISOString() });
+
+    return hits;
   } catch (error) {
     console.error("[groundtruth] Firecrawl search failed", error);
     return [];
@@ -129,14 +272,22 @@ type ScrapedPage = {
   content: string;
 };
 
-async function scrapeWithCache(db: Db, url: string): Promise<ScrapedPage | null> {
+async function scrapeWithCache(
+  db: Db,
+  budget: RetrievalBudget,
+  claimIndex: number,
+  rawUrl: string,
+): Promise<ScrapedPage | null> {
+  const url = normalizeUrl(rawUrl);
+
   const { data: cached } = await db
     .from("gt_page_cache")
     .select("url, canonical_url, title, source_name, published_at, content, fetched_at")
     .eq("url", url)
     .maybeSingle();
 
-  if (cached && Date.now() - new Date(cached.fetched_at).getTime() < CACHE_TTL_MS) {
+  if (cached && Date.now() - new Date(cached.fetched_at).getTime() < LIMITS.pageCacheTtlMs) {
+    budget.cacheHits += 1;
     return {
       url: cached.url,
       canonicalUrl: cached.canonical_url,
@@ -146,6 +297,9 @@ async function scrapeWithCache(db: Db, url: string): Promise<ScrapedPage | null>
       content: cached.content ?? "",
     };
   }
+
+  budget.cacheMisses += 1;
+  if (!(await budget.grantScrape(claimIndex))) return null;
 
   try {
     const res = await fetch(`${FIRECRAWL_V2}/scrape`, {
@@ -207,7 +361,9 @@ async function decompose(input: string): Promise<string[]> {
     "You extract atomic, checkable factual claims from text. Respond with JSON only.",
     `Extract the atomic factual claims from the input below. Ignore opinions, predictions and rhetorical questions. If the input is a question rather than an assertion, produce the 1-3 factual sub-questions that must be verified to answer it, phrased as checkable statements.
 
-Return JSON: {"claims": ["...", "..."]} with at most ${MAX_CLAIMS} claims, each a single self-contained sentence.
+Order the claims by how check-worthy they are: the most consequential, most falsifiable claims first.
+
+Return JSON: {"claims": ["...", "..."]} with at most 12 claims, each a single self-contained sentence.
 
 INPUT:
 """${input.slice(0, 6000)}"""`,
@@ -216,32 +372,51 @@ INPUT:
   const claims = Array.isArray(parsed.claims) ? parsed.claims : [];
   return claims
     .filter((c): c is string => typeof c === "string" && c.trim().length > 0)
-    .slice(0, MAX_CLAIMS)
     .map((c) => c.trim());
 }
 
-async function retrieve(db: Db, claim: string): Promise<Retrieved[]> {
-  const hits = await firecrawlSearch(claim);
+/** A claim is well grounded once it has one Tier 1 source or two Tier 1-2 sources. */
+function isWellGrounded(found: Retrieved[]): boolean {
+  const tier1 = found.filter((r) => r.tier === 1).length;
+  const tier12 = found.filter((r) => r.tier <= 2).length;
+  return tier1 >= 1 || tier12 >= 2;
+}
+
+async function retrieve(
+  db: Db,
+  budget: RetrievalBudget,
+  claimIndex: number,
+  claim: string,
+): Promise<Retrieved[]> {
+  const hits = await searchWithCache(db, budget, claimIndex, claim);
   if (hits.length === 0) return [];
 
-  const top = hits.slice(0, SOURCES_PER_CLAIM);
-  const pages = await Promise.all(
-    top.map(async (hit) => {
-      const page = await scrapeWithCache(db, hit.url);
-      if (!page) return null;
-      const snippet = (page.content || hit.description || "").slice(0, 400);
-      return {
-        page: { ...page, title: page.title ?? hit.title ?? null },
-        tier: classifyTier(page.canonicalUrl ?? hit.url),
-        snippet,
-      } satisfies Retrieved;
-    }),
-  );
+  const found: Retrieved[] = [];
 
-  return pages
-    .filter((p): p is Retrieved => p !== null)
-    .sort((a, b) => a.tier - b.tier);
+  // Sequential on purpose: early exit and the per-task counter need ordered decisions.
+  for (const hit of hits) {
+    if (budget.claimScrapeAttemptsLeft(claimIndex) === 0) {
+      budget.markCap("scrapes-per-claim");
+      break;
+    }
+    if (isWellGrounded(found)) {
+      budget.markCap("early-exit");
+      break;
+    }
+
+    const page = await scrapeWithCache(db, budget, claimIndex, hit.url);
+    if (!page) continue;
+
+    found.push({
+      page: { ...page, title: page.title ?? hit.title ?? null },
+      tier: classifyTier(page.canonicalUrl ?? hit.url),
+      snippet: (page.content || hit.description || "").slice(0, 400),
+    });
+  }
+
+  return found.sort((a, b) => a.tier - b.tier);
 }
+
 
 type Judgement = { status: ClaimStatus; justification: string; drift: Drift };
 
@@ -349,13 +524,30 @@ export async function runGroundTruthCheck(
   const trimmed = input.trim();
   const inputKind: "question" | "pasted" = trimmed.length > 280 ? "pasted" : "question";
 
-  const claimTexts = await decompose(trimmed);
+  const budget = new RetrievalBudget();
 
-  const retrievals = await Promise.all(claimTexts.map((claim) => retrieve(db, claim)));
+  const allClaims = await decompose(trimmed);
+  const claimTexts = allClaims.slice(0, LIMITS.maxClaimsPerTask);
+  if (allClaims.length > LIMITS.maxClaimsPerTask) {
+    budget.markCap("claims-per-task");
+    budget.unverifiedClaims = allClaims.slice(LIMITS.maxClaimsPerTask);
+  }
+
+  // Sequential across claims so the per-task call counter is authoritative.
+  const retrievals: Retrieved[][] = [];
+  for (let i = 0; i < claimTexts.length; i += 1) {
+    retrievals.push(await retrieve(db, budget, i, claimTexts[i]!));
+  }
 
   const judgements = await Promise.all(
     claimTexts.map((claim, i) => judge(claim, retrievals[i] ?? [])),
   );
+
+  const stats = budget.toStats();
+  console.info(
+    `[groundtruth] retrieval cost — searches=${stats.searches} scrapes=${stats.scrapes} cacheHits=${stats.cacheHits} cacheMisses=${stats.cacheMisses} capsHit=${stats.capsHit.join("|") || "none"} budgetPaused=${stats.budgetPaused} unverifiedClaims=${stats.unverifiedClaims.length}`,
+  );
+
 
   // Assign global citation numbers.
   let citation = 0;
@@ -399,6 +591,7 @@ export async function runGroundTruthCheck(
     answer,
     groundingScore,
     claims,
+    retrievalStats: stats,
   });
 }
 
@@ -415,6 +608,7 @@ async function persist(
       input_kind: result.inputKind,
       answer: result.answer,
       grounding_score: result.groundingScore,
+      retrieval_stats: result.retrievalStats,
     })
     .select("id, created_at")
     .single();
@@ -482,6 +676,7 @@ async function persist(
     inputKind: result.inputKind,
     answer: result.answer,
     groundingScore: result.groundingScore,
+    retrievalStats: result.retrievalStats,
     claims: finalClaims,
   };
 }
@@ -489,7 +684,7 @@ async function persist(
 export async function loadCheck(db: Db, checkId: string): Promise<CheckResult | null> {
   const { data: check } = await db
     .from("gt_checks")
-    .select("id, input_text, input_kind, answer, grounding_score, created_at")
+    .select("id, input_text, input_kind, answer, grounding_score, retrieval_stats, created_at")
     .eq("id", checkId)
     .maybeSingle();
   if (!check) return null;
@@ -536,6 +731,10 @@ export async function loadCheck(db: Db, checkId: string): Promise<CheckResult | 
     inputKind: (check.input_kind as "question" | "pasted") ?? "question",
     answer: check.answer ?? "",
     groundingScore: Number(check.grounding_score ?? 0),
+    retrievalStats: {
+      ...EMPTY_RETRIEVAL_STATS,
+      ...((check.retrieval_stats as Partial<RetrievalStats> | null) ?? {}),
+    },
     createdAt: check.created_at,
     claims,
   };

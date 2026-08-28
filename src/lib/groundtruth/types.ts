@@ -1,3 +1,5 @@
+import type { RetrievalStats } from "@/lib/groundtruth/limits";
+
 export type ClaimStatus =
   | "Primary Source"
   | "Corroborated"
@@ -66,6 +68,7 @@ export type CheckResult = {
   groundingScore: number;
   createdAt: string;
   claims: Claim[];
+  retrievalStats: RetrievalStats;
 };
 
 export type CheckSummary = {

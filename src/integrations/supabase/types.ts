@@ -22,6 +22,7 @@ export type Database = {
           id: string
           input_kind: string
           input_text: string
+          retrieval_stats: Json | null
           user_id: string
         }
         Insert: {
@@ -31,6 +32,7 @@ export type Database = {
           id?: string
           input_kind?: string
           input_text: string
+          retrieval_stats?: Json | null
           user_id: string
         }
         Update: {
@@ -40,6 +42,7 @@ export type Database = {
           id?: string
           input_kind?: string
           input_text?: string
+          retrieval_stats?: Json | null
           user_id?: string
         }
         Relationships: []
@@ -88,6 +91,24 @@ export type Database = {
           },
         ]
       }
+      gt_firecrawl_usage: {
+        Row: {
+          calls: number
+          day: string
+          updated_at: string
+        }
+        Insert: {
+          calls?: number
+          day: string
+          updated_at?: string
+        }
+        Update: {
+          calls?: number
+          day?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       gt_page_cache: {
         Row: {
           canonical_url: string | null
@@ -115,6 +136,24 @@ export type Database = {
           source_name?: string | null
           title?: string | null
           url?: string
+        }
+        Relationships: []
+      }
+      gt_search_cache: {
+        Row: {
+          fetched_at: string
+          query: string
+          results: Json
+        }
+        Insert: {
+          fetched_at?: string
+          query: string
+          results?: Json
+        }
+        Update: {
+          fetched_at?: string
+          query?: string
+          results?: Json
         }
         Relationships: []
       }
@@ -186,7 +225,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      gt_reserve_firecrawl_calls: {
+        Args: { _count: number; _daily_budget: number }
+        Returns: number
+      }
     }
     Enums: {
       [_ in never]: never
