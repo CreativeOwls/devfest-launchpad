@@ -10,26 +10,18 @@ import type { CheckResult, CheckSummary } from "@/lib/groundtruth/types";
  */
 
 export const runCheck = createServerFn({ method: "POST" })
-  .inputValidator((data) => z.object({ input: z.string().min(3).max(8000) }).parse(data))
-  .handler(async ({ data }): Promise<CheckResult> => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { runGroundTruthCheck } = await import("@/lib/groundtruth.server");
-    return runGroundTruthCheck(supabaseAdmin, null, data.input);
-  });
-
-export const runImageCheck = createServerFn({ method: "POST" })
   .inputValidator((data) =>
     z
-      .object({ image: z.string().min(32).max(12_000_000) })
+      .object({
+        input: z.string().min(3).max(8000),
+        kind: z.enum(["question", "pasted", "image"]).optional(),
+      })
       .parse(data),
   )
   .handler(async ({ data }): Promise<CheckResult> => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { extractTextFromImage, runGroundTruthCheck } = await import(
-      "@/lib/groundtruth.server"
-    );
-    const text = await extractTextFromImage(data.image);
-    return runGroundTruthCheck(supabaseAdmin, null, text, "image");
+    const { runGroundTruthCheck } = await import("@/lib/groundtruth.server");
+    return runGroundTruthCheck(supabaseAdmin, null, data.input, data.kind);
   });
 
 export const ocrImage = createServerFn({ method: "POST" })
