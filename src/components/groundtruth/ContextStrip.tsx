@@ -3,7 +3,7 @@ import { useState } from "react";
 
 import { cn } from "@/lib/utils";
 
-export function ContextStrip({ text }: { text: string }) {
+export function ContextStrip({ text, label = "Pasted post" }: { text: string; label?: string }) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -15,7 +15,7 @@ export function ContextStrip({ text }: { text: string }) {
         className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left"
       >
         <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
-          <span className="mr-2 uppercase tracking-wide text-foreground/60">Pasted post</span>
+          <span className="mr-2 uppercase tracking-wide text-foreground/60">{label}</span>
           {text}
         </span>
         <ChevronDown

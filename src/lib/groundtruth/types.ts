@@ -63,7 +63,7 @@ export type Claim = {
 export type CheckResult = {
   id: string;
   inputText: string;
-  inputKind: "question" | "pasted";
+  inputKind: "question" | "pasted" | "image";
   answer: string;
   groundingScore: number;
   createdAt: string;
