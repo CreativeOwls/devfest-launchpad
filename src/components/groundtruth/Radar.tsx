@@ -67,7 +67,7 @@ export function Radar({
         <line x1="50" y1="3" x2="50" y2="97" stroke="var(--brand-ink)" strokeOpacity="0.1" />
 
         <g
-          className={cn("gt-radar-sweep", !active && "gt-radar-sweep-idle")}
+          className={cn(active ? "gt-radar-sweep" : "gt-radar-sweep-idle")}
           style={{ transformOrigin: "50% 50%" }}
         >
           <path d="M50 50 L97 50 A47 47 0 0 0 63 5 Z" fill="url(#gt-radar-sweep)" />
