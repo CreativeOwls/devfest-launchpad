@@ -413,12 +413,14 @@
 
 .gt-radar-sweep {
   animation: gt-radar-spin 2.4s linear infinite;
-  transform-box: fill-box;
+  transform-box: view-box;
+  transform-origin: 50% 50%;
 }
 .gt-radar-sweep-idle {
   animation: none;
   opacity: 0.32;
-  transform-box: fill-box;
+  transform-box: view-box;
+  transform-origin: 50% 50%;
 }
 .gt-radar-ping {
   animation: gt-radar-ping 1.8s var(--ease-instrument, ease-out) infinite;
