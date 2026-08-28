@@ -83,9 +83,10 @@ export function HeroInput({
         void takeFile(event.dataTransfer.files[0]);
       }}
       className={cn(
-        "elev-2 rounded-2xl border border-border bg-card p-3 transition-[box-shadow,border-color,background-color] duration-200 focus-within:elev-3",
+        "gt-racer elev-2 rounded-2xl border border-border bg-card p-3 transition-[box-shadow,border-color,background-color] duration-200 focus-within:elev-3",
         dragging && "border-accent-blue/60 bg-accent-blue/5",
         !compact && "p-4 sm:p-5",
+        pending && "gt-racer-fast",
       )}
     >
       <Textarea
