@@ -1,0 +1,542 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
+
+import type { Database } from "@/integrations/supabase/types";
+import { classifyTier, sourceNameOf } from "@/lib/groundtruth/tiers";
+import {
+  computeGrounding,
+  STATUS_ORDER,
+  type CheckResult,
+  type Claim,
+  type ClaimStatus,
+  type Drift,
+  type EvidenceSource,
+} from "@/lib/groundtruth/types";
+
+type Db = SupabaseClient<Database>;
+
+const AI_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
+const AI_MODEL = "google/gemini-3.7-flash";
+const FIRECRAWL_V2 = "https://api.firecrawl.dev/v2";
+
+const MAX_CLAIMS = 5;
+const SOURCES_PER_CLAIM = 3;
+const CACHE_TTL_MS = 1000 * 60 * 60 * 24 * 7;
+
+/* ---------------------------------- AI ---------------------------------- */
+
+async function callAi(system: string, user: string): Promise<string> {
+  const key = process.env["LOVABLE_API_KEY"];
+  if (!key) throw new Error("LOVABLE_API_KEY is not configured");
+
+  const res = await fetch(AI_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${key}`,
+      "Lovable-API-Key": key,
+    },
+    body: JSON.stringify({
+      model: AI_MODEL,
+      messages: [
+        { role: "system", content: system },
+        { role: "user", content: user },
+      ],
+    }),
+  });
+
+  if (!res.ok) {
+    const body = await res.text();
+    console.error(`[groundtruth] AI gateway ${res.status}: ${body}`);
+    if (res.status === 429) throw new Error("The AI service is rate limited. Try again shortly.");
+    if (res.status === 402)
+      throw new Error("AI credits are exhausted for this workspace. Add credits to continue.");
+    throw new Error(`AI request failed (${res.status}).`);
+  }
+
+  const data = (await res.json()) as {
+    choices?: { message?: { content?: string } }[];
+  };
+  return data.choices?.[0]?.message?.content ?? "";
+}
+
+function parseJson<T>(raw: string, fallback: T): T {
+  const cleaned = raw
+    .trim()
+    .replace(/^```(?:json)?/i, "")
+    .replace(/```$/, "")
+    .trim();
+  const start = cleaned.search(/[[{]/);
+  if (start === -1) return fallback;
+  const candidate = cleaned.slice(start);
+  try {
+    return JSON.parse(candidate) as T;
+  } catch {
+    // Trim trailing prose after the JSON value.
+    const lastBrace = Math.max(candidate.lastIndexOf("}"), candidate.lastIndexOf("]"));
+    if (lastBrace > 0) {
+      try {
+        return JSON.parse(candidate.slice(0, lastBrace + 1)) as T;
+      } catch {
+        return fallback;
+      }
+    }
+    return fallback;
+  }
+}
+
+/* ------------------------------- Firecrawl ------------------------------- */
+
+type SearchHit = { url: string; title?: string; description?: string };
+
+function firecrawlKey(): string {
+  const key = process.env["FIRECRAWL_API_KEY"];
+  if (!key) throw new Error("FIRECRAWL_API_KEY is not configured");
+  return key;
+}
+
+async function firecrawlSearch(query: string): Promise<SearchHit[]> {
+  try {
+    const res = await fetch(`${FIRECRAWL_V2}/search`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${firecrawlKey()}`,
+      },
+      body: JSON.stringify({ query, limit: 5 }),
+    });
+    if (!res.ok) {
+      console.error(`[groundtruth] Firecrawl search ${res.status}: ${await res.text()}`);
+      return [];
+    }
+    const json = (await res.json()) as {
+      data?: SearchHit[] | { web?: SearchHit[] };
+    };
+    const data = json.data;
+    const hits = Array.isArray(data) ? data : (data?.web ?? []);
+    return hits.filter((h) => typeof h?.url === "string");
+  } catch (error) {
+    console.error("[groundtruth] Firecrawl search failed", error);
+    return [];
+  }
+}
+
+type ScrapedPage = {
+  url: string;
+  canonicalUrl: string | null;
+  title: string | null;
+  sourceName: string;
+  publishedAt: string | null;
+  content: string;
+};
+
+async function scrapeWithCache(db: Db, url: string): Promise<ScrapedPage | null> {
+  const { data: cached } = await db
+    .from("gt_page_cache")
+    .select("url, canonical_url, title, source_name, published_at, content, fetched_at")
+    .eq("url", url)
+    .maybeSingle();
+
+  if (cached && Date.now() - new Date(cached.fetched_at).getTime() < CACHE_TTL_MS) {
+    return {
+      url: cached.url,
+      canonicalUrl: cached.canonical_url,
+      title: cached.title,
+      sourceName: cached.source_name ?? sourceNameOf(url),
+      publishedAt: cached.published_at,
+      content: cached.content ?? "",
+    };
+  }
+
+  try {
+    const res = await fetch(`${FIRECRAWL_V2}/scrape`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${firecrawlKey()}`,
+      },
+      body: JSON.stringify({ url, formats: ["markdown"], onlyMainContent: true }),
+    });
+    if (!res.ok) {
+      console.error(`[groundtruth] Firecrawl scrape ${res.status} for ${url}`);
+      return null;
+    }
+    const json = (await res.json()) as Record<string, unknown>;
+    const doc = (json["data"] ?? json) as {
+      markdown?: string;
+      metadata?: Record<string, unknown>;
+    };
+    const metadata = doc.metadata ?? {};
+    const page: ScrapedPage = {
+      url,
+      canonicalUrl: (metadata["sourceURL"] as string) ?? (metadata["url"] as string) ?? url,
+      title: (metadata["title"] as string) ?? (metadata["ogTitle"] as string) ?? null,
+      sourceName: (metadata["siteName"] as string) ?? sourceNameOf(url),
+      publishedAt:
+        (metadata["publishedTime"] as string) ??
+        (metadata["article:published_time"] as string) ??
+        (metadata["modifiedTime"] as string) ??
+        null,
+      content: (doc.markdown ?? "").slice(0, 6000),
+    };
+
+    // Cache writes bypass RLS deliberately: the cache is shared, not user data.
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await supabaseAdmin.from("gt_page_cache").upsert({
+      url: page.url,
+      canonical_url: page.canonicalUrl,
+      title: page.title,
+      source_name: page.sourceName,
+      published_at: page.publishedAt,
+      content: page.content,
+      fetched_at: new Date().toISOString(),
+    });
+
+    return page;
+  } catch (error) {
+    console.error(`[groundtruth] scrape failed for ${url}`, error);
+    return null;
+  }
+}
+
+/* -------------------------------- Pipeline ------------------------------- */
+
+type Retrieved = { page: ScrapedPage; tier: number; snippet: string };
+
+async function decompose(input: string): Promise<string[]> {
+  const raw = await callAi(
+    "You extract atomic, checkable factual claims from text. Respond with JSON only.",
+    `Extract the atomic factual claims from the input below. Ignore opinions, predictions and rhetorical questions. If the input is a question rather than an assertion, produce the 1-3 factual sub-questions that must be verified to answer it, phrased as checkable statements.
+
+Return JSON: {"claims": ["...", "..."]} with at most ${MAX_CLAIMS} claims, each a single self-contained sentence.
+
+INPUT:
+"""${input.slice(0, 6000)}"""`,
+  );
+  const parsed = parseJson<{ claims?: unknown }>(raw, {});
+  const claims = Array.isArray(parsed.claims) ? parsed.claims : [];
+  return claims
+    .filter((c): c is string => typeof c === "string" && c.trim().length > 0)
+    .slice(0, MAX_CLAIMS)
+    .map((c) => c.trim());
+}
+
+async function retrieve(db: Db, claim: string): Promise<Retrieved[]> {
+  const hits = await firecrawlSearch(claim);
+  if (hits.length === 0) return [];
+
+  const top = hits.slice(0, SOURCES_PER_CLAIM);
+  const pages = await Promise.all(
+    top.map(async (hit) => {
+      const page = await scrapeWithCache(db, hit.url);
+      if (!page) return null;
+      const snippet = (page.content || hit.description || "").slice(0, 400);
+      return {
+        page: { ...page, title: page.title ?? hit.title ?? null },
+        tier: classifyTier(page.canonicalUrl ?? hit.url),
+        snippet,
+      } satisfies Retrieved;
+    }),
+  );
+
+  return pages
+    .filter((p): p is Retrieved => p !== null)
+    .sort((a, b) => a.tier - b.tier);
+}
+
+type Judgement = { status: ClaimStatus; justification: string; drift: Drift };
+
+async function judge(claim: string, evidence: Retrieved[]): Promise<Judgement> {
+  if (evidence.length === 0) {
+    return {
+      status: "Untraceable",
+      justification: "No retrievable source discusses this claim.",
+      drift: null,
+    };
+  }
+
+  const evidenceBlock = evidence
+    .map(
+      (e, i) =>
+        `[${i + 1}] ${e.page.sourceName} — Tier ${e.tier} — ${e.page.title ?? "untitled"} (${e.page.publishedAt ?? "no date"})\n${e.page.content.slice(0, 2500)}`,
+    )
+    .join("\n\n---\n\n");
+
+  const raw = await callAi(
+    "You are a strict evidence judge. You never invent evidence. Respond with JSON only.",
+    `CLAIM: ${claim}
+
+EVIDENCE:
+${evidenceBlock}
+
+Assign exactly one status from: ${STATUS_ORDER.join(", ")}.
+- "Primary Source": a Tier 1 source directly states the claim.
+- "Corroborated": two or more independent sources (Tier 1-3) support it.
+- "Weak Evidence": only low-tier or indirect support.
+- "Untraceable": the evidence does not address the claim.
+- "Contradicted": the evidence states the opposite.
+
+Also detect claim drift: only if a Tier 1 or Tier 2 source and a lower-tier source state the SAME fact with materially different wording (e.g. hedged vs absolute). If there is no genuine drift, use null.
+
+Return JSON:
+{"status":"...","justification":"one sentence quoting or paraphrasing the strongest evidence","drift":null or {"higherTierWording":"...","lowerTierWording":"...","higherTierSource":"...","lowerTierSource":"..."}}`,
+  );
+
+  const parsed = parseJson<{
+    status?: string;
+    justification?: string;
+    drift?: Drift;
+  }>(raw, {});
+
+  const status = STATUS_ORDER.includes(parsed.status as ClaimStatus)
+    ? (parsed.status as ClaimStatus)
+    : "Weak Evidence";
+
+  const drift =
+    parsed.drift &&
+    typeof parsed.drift === "object" &&
+    typeof parsed.drift.higherTierWording === "string" &&
+    typeof parsed.drift.lowerTierWording === "string"
+      ? parsed.drift
+      : null;
+
+  return {
+    status,
+    justification:
+      typeof parsed.justification === "string" && parsed.justification.trim()
+        ? parsed.justification.trim()
+        : "Judged against the retrieved evidence.",
+    drift,
+  };
+}
+
+async function compose(
+  input: string,
+  judged: { claim: string; status: ClaimStatus; sources: EvidenceSource[] }[],
+): Promise<string> {
+  if (judged.length === 0) {
+    return "I couldn't isolate any checkable factual claim in that input, so there is nothing to verify yet. Try pasting a post or asking a factual question.";
+  }
+
+  const block = judged
+    .map(
+      (j) =>
+        `CLAIM: ${j.claim}\nSTATUS: ${j.status}\nCITATIONS: ${
+          j.sources.map((s) => `[${s.citationIndex}] ${s.sourceName} (Tier ${s.tier})`).join(", ") ||
+          "none"
+        }`,
+    )
+    .join("\n\n");
+
+  return callAi(
+    "You are GroundTruth, a source-native answer engine. You answer conversationally but every factual sentence carries inline numbered citations. Never cite a number that was not supplied.",
+    `USER INPUT:
+"""${input.slice(0, 3000)}"""
+
+VERIFIED CLAIMS:
+${block}
+
+Write a short conversational answer (3-6 sentences, plain text, no markdown headings or bullet lists). Every factual sentence must end with its citation markers like [1] or [2][3]. If a claim is Untraceable or Contradicted, say so plainly in the sentence about it. Do not add facts that are not in the claims above.`,
+  );
+}
+
+/* -------------------------------- Runner --------------------------------- */
+
+export async function runGroundTruthCheck(
+  db: Db,
+  userId: string,
+  input: string,
+): Promise<CheckResult> {
+  const trimmed = input.trim();
+  const inputKind: "question" | "pasted" = trimmed.length > 280 ? "pasted" : "question";
+
+  const claimTexts = await decompose(trimmed);
+
+  const retrievals = await Promise.all(claimTexts.map((claim) => retrieve(db, claim)));
+
+  const judgements = await Promise.all(
+    claimTexts.map((claim, i) => judge(claim, retrievals[i] ?? [])),
+  );
+
+  // Assign global citation numbers.
+  let citation = 0;
+  const claims: Claim[] = claimTexts.map((text, i) => {
+    const evidence = retrievals[i] ?? [];
+    const sources: EvidenceSource[] = evidence.map((e) => {
+      citation += 1;
+      return {
+        id: `${i}-${citation}`,
+        citationIndex: citation,
+        url: e.page.url,
+        canonicalUrl: e.page.canonicalUrl,
+        title: e.page.title,
+        sourceName: e.page.sourceName,
+        publishedAt: e.page.publishedAt,
+        tier: e.tier,
+        snippet: e.snippet,
+      };
+    });
+    const judgement = judgements[i]!;
+    return {
+      id: `${i}`,
+      position: i,
+      text,
+      status: judgement.status,
+      justification: judgement.justification,
+      drift: judgement.drift,
+      sources,
+    };
+  });
+
+  const answer = await compose(
+    trimmed,
+    claims.map((c) => ({ claim: c.text, status: c.status, sources: c.sources })),
+  );
+  const groundingScore = computeGrounding(claims);
+
+  return persist(db, userId, {
+    inputText: trimmed,
+    inputKind,
+    answer,
+    groundingScore,
+    claims,
+  });
+}
+
+async function persist(
+  db: Db,
+  userId: string,
+  result: Omit<CheckResult, "id" | "createdAt">,
+): Promise<CheckResult> {
+  const { data: check, error } = await db
+    .from("gt_checks")
+    .insert({
+      user_id: userId,
+      input_text: result.inputText,
+      input_kind: result.inputKind,
+      answer: result.answer,
+      grounding_score: result.groundingScore,
+    })
+    .select("id, created_at")
+    .single();
+
+  if (error || !check) throw new Error(error?.message ?? "Could not save this check.");
+
+  const finalClaims: Claim[] = [];
+
+  for (const claim of result.claims) {
+    const { data: row, error: claimError } = await db
+      .from("gt_claims")
+      .insert({
+        check_id: check.id,
+        user_id: userId,
+        position: claim.position,
+        text: claim.text,
+        status: claim.status,
+        justification: claim.justification,
+        drift: claim.drift,
+      })
+      .select("id")
+      .single();
+
+    if (claimError || !row) {
+      console.error("[groundtruth] claim insert failed", claimError);
+      continue;
+    }
+
+    const sourceRows = claim.sources.map((s) => ({
+      check_id: check.id,
+      claim_id: row.id,
+      user_id: userId,
+      citation_index: s.citationIndex,
+      url: s.url,
+      canonical_url: s.canonicalUrl,
+      title: s.title,
+      source_name: s.sourceName,
+      published_at: s.publishedAt,
+      tier: s.tier,
+      snippet: s.snippet,
+    }));
+
+    let sources = claim.sources;
+    if (sourceRows.length > 0) {
+      const { data: inserted, error: sourceError } = await db
+        .from("gt_sources")
+        .insert(sourceRows)
+        .select("id, citation_index");
+      if (sourceError) console.error("[groundtruth] source insert failed", sourceError);
+      if (inserted) {
+        sources = claim.sources.map((s) => ({
+          ...s,
+          id: inserted.find((r) => r.citation_index === s.citationIndex)?.id ?? s.id,
+        }));
+      }
+    }
+
+    finalClaims.push({ ...claim, id: row.id, sources });
+  }
+
+  return {
+    id: check.id,
+    createdAt: check.created_at,
+    inputText: result.inputText,
+    inputKind: result.inputKind,
+    answer: result.answer,
+    groundingScore: result.groundingScore,
+    claims: finalClaims,
+  };
+}
+
+export async function loadCheck(db: Db, checkId: string): Promise<CheckResult | null> {
+  const { data: check } = await db
+    .from("gt_checks")
+    .select("id, input_text, input_kind, answer, grounding_score, created_at")
+    .eq("id", checkId)
+    .maybeSingle();
+  if (!check) return null;
+
+  const { data: claimRows } = await db
+    .from("gt_claims")
+    .select("id, position, text, status, justification, drift")
+    .eq("check_id", checkId)
+    .order("position", { ascending: true });
+
+  const { data: sourceRows } = await db
+    .from("gt_sources")
+    .select(
+      "id, claim_id, citation_index, url, canonical_url, title, source_name, published_at, tier, snippet",
+    )
+    .eq("check_id", checkId)
+    .order("citation_index", { ascending: true });
+
+  const claims: Claim[] = (claimRows ?? []).map((c) => ({
+    id: c.id,
+    position: c.position,
+    text: c.text,
+    status: c.status as ClaimStatus,
+    justification: c.justification,
+    drift: (c.drift as Drift) ?? null,
+    sources: (sourceRows ?? [])
+      .filter((s) => s.claim_id === c.id)
+      .map((s) => ({
+        id: s.id,
+        citationIndex: s.citation_index,
+        url: s.url,
+        canonicalUrl: s.canonical_url,
+        title: s.title,
+        sourceName: s.source_name,
+        publishedAt: s.published_at,
+        tier: s.tier,
+        snippet: s.snippet,
+      })),
+  }));
+
+  return {
+    id: check.id,
+    inputText: check.input_text,
+    inputKind: (check.input_kind as "question" | "pasted") ?? "question",
+    answer: check.answer ?? "",
+    groundingScore: Number(check.grounding_score ?? 0),
+    createdAt: check.created_at,
+    claims,
+  };
+}

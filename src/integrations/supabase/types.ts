@@ -14,7 +14,173 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      gt_checks: {
+        Row: {
+          answer: string | null
+          created_at: string
+          grounding_score: number | null
+          id: string
+          input_kind: string
+          input_text: string
+          user_id: string
+        }
+        Insert: {
+          answer?: string | null
+          created_at?: string
+          grounding_score?: number | null
+          id?: string
+          input_kind?: string
+          input_text: string
+          user_id: string
+        }
+        Update: {
+          answer?: string | null
+          created_at?: string
+          grounding_score?: number | null
+          id?: string
+          input_kind?: string
+          input_text?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      gt_claims: {
+        Row: {
+          check_id: string
+          created_at: string
+          drift: Json | null
+          id: string
+          justification: string | null
+          position: number
+          status: string
+          text: string
+          user_id: string
+        }
+        Insert: {
+          check_id: string
+          created_at?: string
+          drift?: Json | null
+          id?: string
+          justification?: string | null
+          position: number
+          status?: string
+          text: string
+          user_id: string
+        }
+        Update: {
+          check_id?: string
+          created_at?: string
+          drift?: Json | null
+          id?: string
+          justification?: string | null
+          position?: number
+          status?: string
+          text?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gt_claims_check_id_fkey"
+            columns: ["check_id"]
+            isOneToOne: false
+            referencedRelation: "gt_checks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gt_page_cache: {
+        Row: {
+          canonical_url: string | null
+          content: string | null
+          fetched_at: string
+          published_at: string | null
+          source_name: string | null
+          title: string | null
+          url: string
+        }
+        Insert: {
+          canonical_url?: string | null
+          content?: string | null
+          fetched_at?: string
+          published_at?: string | null
+          source_name?: string | null
+          title?: string | null
+          url: string
+        }
+        Update: {
+          canonical_url?: string | null
+          content?: string | null
+          fetched_at?: string
+          published_at?: string | null
+          source_name?: string | null
+          title?: string | null
+          url?: string
+        }
+        Relationships: []
+      }
+      gt_sources: {
+        Row: {
+          canonical_url: string | null
+          check_id: string
+          citation_index: number
+          claim_id: string
+          created_at: string
+          id: string
+          published_at: string | null
+          snippet: string | null
+          source_name: string | null
+          tier: number
+          title: string | null
+          url: string
+          user_id: string
+        }
+        Insert: {
+          canonical_url?: string | null
+          check_id: string
+          citation_index: number
+          claim_id: string
+          created_at?: string
+          id?: string
+          published_at?: string | null
+          snippet?: string | null
+          source_name?: string | null
+          tier?: number
+          title?: string | null
+          url: string
+          user_id: string
+        }
+        Update: {
+          canonical_url?: string | null
+          check_id?: string
+          citation_index?: number
+          claim_id?: string
+          created_at?: string
+          id?: string
+          published_at?: string | null
+          snippet?: string | null
+          source_name?: string | null
+          tier?: number
+          title?: string | null
+          url?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gt_sources_check_id_fkey"
+            columns: ["check_id"]
+            isOneToOne: false
+            referencedRelation: "gt_checks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gt_sources_claim_id_fkey"
+            columns: ["claim_id"]
+            isOneToOne: false
+            referencedRelation: "gt_claims"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
