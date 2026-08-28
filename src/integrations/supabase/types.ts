@@ -20,8 +20,10 @@ export type Database = {
           created_at: string
           grounding_score: number | null
           id: string
+          image_url: string | null
           input_kind: string
           input_text: string
+          ocr_text: string | null
           retrieval_stats: Json | null
           user_id: string | null
         }
@@ -30,8 +32,10 @@ export type Database = {
           created_at?: string
           grounding_score?: number | null
           id?: string
+          image_url?: string | null
           input_kind?: string
           input_text: string
+          ocr_text?: string | null
           retrieval_stats?: Json | null
           user_id?: string | null
         }
@@ -40,8 +44,10 @@ export type Database = {
           created_at?: string
           grounding_score?: number | null
           id?: string
+          image_url?: string | null
           input_kind?: string
           input_text?: string
+          ocr_text?: string | null
           retrieval_stats?: Json | null
           user_id?: string | null
         }
