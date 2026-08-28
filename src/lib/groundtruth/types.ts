@@ -60,6 +60,14 @@ export type Claim = {
   sources: EvidenceSource[];
 };
 
+export type AiAuthorship = {
+  /** 0-100 likelihood the submitted text was AI-generated. Never a binary verdict. */
+  aiLikelihood: number;
+  confidence: "low" | "medium" | "high";
+  signals: string[];
+  caveat: string;
+};
+
 export type CheckResult = {
   id: string;
   inputText: string;
@@ -69,6 +77,8 @@ export type CheckResult = {
   answer: string;
   groundingScore: number;
   createdAt: string;
+  /** Secondary, independent signal — never blended into groundingScore. */
+  aiAuthorship: AiAuthorship | null;
   claims: Claim[];
   retrievalStats: RetrievalStats;
 };

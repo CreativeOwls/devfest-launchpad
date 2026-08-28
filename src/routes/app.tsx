@@ -12,6 +12,7 @@ import { ContextStrip } from "@/components/groundtruth/ContextStrip";
 import { StatusLegend } from "@/components/groundtruth/StatusLegend";
 import { SourcePanel } from "@/components/groundtruth/SourcePanel";
 import { EvidencePanel } from "@/components/groundtruth/EvidencePanel";
+import { AiAuthorshipBadge } from "@/components/groundtruth/AiAuthorshipBadge";
 import { GroundingScore } from "@/components/groundtruth/GroundingScore";
 import { HeroInput, type Attachment } from "@/components/groundtruth/HeroInput";
 import { HistoryList } from "@/components/groundtruth/HistoryList";
@@ -327,7 +328,12 @@ function AppPage() {
                   />
                 </article>
 
-                <GroundingScore claims={result.claims} score={result.groundingScore} />
+                <div className="space-y-2">
+                  <GroundingScore claims={result.claims} score={result.groundingScore} />
+                  {result.aiAuthorship ? (
+                    <AiAuthorshipBadge authorship={result.aiAuthorship} />
+                  ) : null}
+                </div>
               </div>
             ) : null}
 
