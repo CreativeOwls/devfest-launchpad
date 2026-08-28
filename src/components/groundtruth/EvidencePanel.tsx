@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 
 import { EvidenceCard } from "@/components/groundtruth/EvidenceCard";
 import { StatusDot } from "@/components/groundtruth/StatusDot";
-import type { RetrievalStats } from "@/lib/groundtruth/limits";
+import { LIMITS, type RetrievalStats } from "@/lib/groundtruth/limits";
 import type { Claim } from "@/lib/groundtruth/types";
 import { cn } from "@/lib/utils";
 
@@ -49,6 +49,12 @@ export function EvidencePanel({
             {stats.searches === 1 ? "" : "es"} · {stats.scrapes} scrape
             {stats.scrapes === 1 ? "" : "s"} · {stats.cacheHits} cache hit
             {stats.cacheHits === 1 ? "" : "s"}
+            {stats.dailyCallsUsed > 0
+              ? ` · ${stats.dailyCallsUsed}/${LIMITS.dailyCallBudget} today`
+              : ""}
+            {stats.eventCallsUsed > 0
+              ? ` · ${stats.eventCallsUsed}/${LIMITS.eventCallBudget} event`
+              : ""}
             {stats.capsHit.length > 0 ? ` · caps: ${stats.capsHit.join(", ")}` : ""}
           </p>
           {stats.unverifiedClaims.length > 0 ? (
