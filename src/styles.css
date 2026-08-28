@@ -67,7 +67,13 @@
   --color-accent-green: var(--accent-green);
   --color-brand: var(--brand);
   --color-brand-ink: var(--brand-ink);
+  --color-status-primary: var(--status-primary);
+  --color-status-corroborated: var(--status-corroborated);
+  --color-status-weak: var(--status-weak);
+  --color-status-untraceable: var(--status-untraceable);
+  --color-status-contradicted: var(--status-contradicted);
 }
+
 
 :root {
   --radius: 0.625rem;
