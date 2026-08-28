@@ -26,7 +26,7 @@ const TITLE = "GroundTruth — Answers with receipts";
 const DESCRIPTION =
   "Paste a viral post or ask a question. GroundTruth answers conversationally with inline citations, source tiers and a transparent grounding score.";
 
-export const Route = createFileRoute("/_authenticated/app")({
+export const Route = createFileRoute("/app")({
   head: () => ({
     meta: [
       { title: TITLE },

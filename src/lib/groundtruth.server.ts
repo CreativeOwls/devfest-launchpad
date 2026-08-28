@@ -518,7 +518,7 @@ Write a short conversational answer (3-6 sentences, plain text, no markdown head
 
 export async function runGroundTruthCheck(
   db: Db,
-  userId: string,
+  userId: string | null,
   input: string,
 ): Promise<CheckResult> {
   const trimmed = input.trim();
@@ -597,7 +597,7 @@ export async function runGroundTruthCheck(
 
 async function persist(
   db: Db,
-  userId: string,
+  userId: string | null,
   result: Omit<CheckResult, "id" | "createdAt">,
 ): Promise<CheckResult> {
   const { data: check, error } = await db
