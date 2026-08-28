@@ -17,6 +17,28 @@ export const runCheck = createServerFn({ method: "POST" })
     return runGroundTruthCheck(supabaseAdmin, null, data.input);
   });
 
+export const runImageCheck = createServerFn({ method: "POST" })
+  .inputValidator((data) =>
+    z
+      .object({ image: z.string().min(32).max(12_000_000) })
+      .parse(data),
+  )
+  .handler(async ({ data }): Promise<CheckResult> => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { extractTextFromImage, runGroundTruthCheck } = await import(
+      "@/lib/groundtruth.server"
+    );
+    const text = await extractTextFromImage(data.image);
+    return runGroundTruthCheck(supabaseAdmin, null, text, "image");
+  });
+
+export const ocrImage = createServerFn({ method: "POST" })
+  .inputValidator((data) => z.object({ image: z.string().min(32).max(12_000_000) }).parse(data))
+  .handler(async ({ data }): Promise<{ text: string }> => {
+    const { extractTextFromImage } = await import("@/lib/groundtruth.server");
+    return { text: await extractTextFromImage(data.image) };
+  });
+
 export const listChecks = createServerFn({ method: "GET" }).handler(
   async (): Promise<CheckSummary[]> => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
