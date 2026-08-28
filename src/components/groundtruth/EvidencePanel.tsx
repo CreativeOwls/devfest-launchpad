@@ -2,6 +2,8 @@ import { useEffect, useRef } from "react";
 
 import { EvidenceCard } from "@/components/groundtruth/EvidenceCard";
 import { StatusDot } from "@/components/groundtruth/StatusDot";
+import { StatusPill } from "@/components/groundtruth/StatusPill";
+import { statusStyle } from "@/lib/groundtruth/statusStyles";
 import { LIMITS, type RetrievalStats } from "@/lib/groundtruth/limits";
 import type { Claim } from "@/lib/groundtruth/types";
 import { cn } from "@/lib/utils";
@@ -68,25 +70,29 @@ export function EvidencePanel({
       ) : null}
       {claims.map((claim, index) => {
         const revealed = index < revealedCount;
+        const style = statusStyle(revealed ? claim.status : null);
         return (
           <section
             key={claim.id}
             data-claim-id={claim.id}
             className={cn(
-              "scroll-mt-4 rounded-xl border bg-card p-3.5 transition-all duration-500",
-              activeClaimId === claim.id
-                ? "border-accent-blue/50 shadow-sm ring-1 ring-accent-blue/20"
-                : "border-border",
+              "relative scroll-mt-4 overflow-hidden rounded-xl border p-3.5 pl-4 transition-all duration-500",
+              revealed ? style.wash : "border-border bg-card",
+              activeClaimId === claim.id && "shadow-sm ring-1 ring-accent-blue/30",
               revealed ? "opacity-100" : "opacity-40",
             )}
           >
-            <div className="flex items-start gap-2">
-              <StatusDot status={revealed ? claim.status : undefined} pending={!revealed} className="mt-1.5" />
+            <span
+              aria-hidden="true"
+              className={cn("absolute inset-y-0 left-0 w-1.5", revealed ? style.bar : "bg-border")}
+            />
+            <div className="flex items-start gap-3">
+              <StatusDot status={revealed ? claim.status : undefined} pending={!revealed} className="mt-0.5" />
               <div className="min-w-0">
                 <p className="text-sm font-medium leading-snug text-foreground">{claim.text}</p>
-                <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                  {revealed ? claim.status : "Judging…"}
-                </p>
+                <div className="mt-2">
+                  <StatusPill status={revealed ? claim.status : undefined} pending={!revealed} />
+                </div>
               </div>
             </div>
 
