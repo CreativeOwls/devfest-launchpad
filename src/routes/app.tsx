@@ -253,7 +253,7 @@ function AppPage() {
                   </DrawerTrigger>
                   <DrawerContent className="app-theme max-h-[85vh]">
                     <DrawerHeader>
-                      <DrawerTitle>Evidence</DrawerTitle>
+                      <DrawerTitle><span aria-hidden="true" className="mr-1.5">🔍</span>Evidence</DrawerTitle>
                     </DrawerHeader>
                     <div className="overflow-y-auto overscroll-contain">{evidence}</div>
                   </DrawerContent>
@@ -353,6 +353,7 @@ function AppPage() {
 
           <aside className="elev-2 sticky top-24 hidden max-h-[calc(100vh-8rem)] overflow-y-auto rounded-xl border border-border bg-card xl:block">
             <h2 className="sticky top-0 z-10 border-b border-border bg-card/95 px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground backdrop-blur">
+              <span aria-hidden="true" className="mr-1.5">🔍</span>
               Evidence
             </h2>
             {evidence}
