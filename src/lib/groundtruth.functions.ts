@@ -15,20 +15,30 @@ export const runCheck = createServerFn({ method: "POST" })
       .object({
         input: z.string().min(3).max(8000),
         kind: z.enum(["question", "pasted", "image"]).optional(),
+        imagePath: z.string().max(300).nullish(),
+        ocrText: z.string().max(20000).nullish(),
       })
       .parse(data),
   )
   .handler(async ({ data }): Promise<CheckResult> => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { runGroundTruthCheck } = await import("@/lib/groundtruth.server");
-    return runGroundTruthCheck(supabaseAdmin, null, data.input, data.kind);
+    return runGroundTruthCheck(supabaseAdmin, null, data.input, data.kind, {
+      imagePath: data.imagePath ?? null,
+      ocrText: data.ocrText ?? null,
+    });
   });
 
 export const ocrImage = createServerFn({ method: "POST" })
   .inputValidator((data) => z.object({ image: z.string().min(32).max(12_000_000) }).parse(data))
-  .handler(async ({ data }): Promise<{ text: string }> => {
-    const { extractTextFromImage } = await import("@/lib/groundtruth.server");
-    return { text: await extractTextFromImage(data.image) };
+  .handler(async ({ data }): Promise<{ text: string; imagePath: string | null }> => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { extractTextFromImage, storeCheckImage } = await import("@/lib/groundtruth.server");
+    const [text, imagePath] = await Promise.all([
+      extractTextFromImage(data.image),
+      storeCheckImage(supabaseAdmin, data.image),
+    ]);
+    return { text, imagePath };
   });
 
 export const listChecks = createServerFn({ method: "GET" }).handler(

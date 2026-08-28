@@ -64,6 +64,8 @@ export type CheckResult = {
   id: string;
   inputText: string;
   inputKind: "question" | "pasted" | "image";
+  imageUrl: string | null;
+  ocrText: string | null;
   answer: string;
   groundingScore: number;
   createdAt: string;

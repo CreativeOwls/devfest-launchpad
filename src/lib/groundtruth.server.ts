@@ -581,11 +581,41 @@ Write a short conversational answer (3-6 sentences, plain text, no markdown head
 
 /* -------------------------------- Runner --------------------------------- */
 
+const UPLOAD_BUCKET = "gt-uploads";
+const SIGNED_URL_TTL = 60 * 60 * 24 * 7;
+
+/** Stores a submitted screenshot in private storage; returns its object path. */
+export async function storeCheckImage(db: Db, dataUrl: string): Promise<string | null> {
+  const match = /^data:(image\/(png|jpeg|jpg|webp));base64,(.+)$/i.exec(dataUrl);
+  if (!match) return null;
+  const contentType = match[1]!;
+  const ext = contentType.split("/")[1]!.replace("jpeg", "jpg");
+  const bytes = Buffer.from(match[3]!, "base64");
+  const path = `checks/${crypto.randomUUID()}.${ext}`;
+  const { error } = await db.storage.from(UPLOAD_BUCKET).upload(path, bytes, { contentType });
+  if (error) {
+    console.error("[groundtruth] image upload failed", error);
+    return null;
+  }
+  return path;
+}
+
+async function signImage(db: Db, path: string | null): Promise<string | null> {
+  if (!path) return null;
+  const { data, error } = await db.storage.from(UPLOAD_BUCKET).createSignedUrl(path, SIGNED_URL_TTL);
+  if (error) {
+    console.error("[groundtruth] signing image failed", error);
+    return null;
+  }
+  return data?.signedUrl ?? null;
+}
+
 export async function runGroundTruthCheck(
   db: Db,
   userId: string | null,
   input: string,
   forcedKind?: CheckResult["inputKind"],
+  media?: { imagePath?: string | null; ocrText?: string | null },
 ): Promise<CheckResult> {
   const trimmed = input.trim();
   const inputKind: CheckResult["inputKind"] =
@@ -655,6 +685,8 @@ export async function runGroundTruthCheck(
   return persist(db, userId, {
     inputText: trimmed,
     inputKind,
+    imagePath: media?.imagePath ?? null,
+    ocrText: media?.ocrText ?? null,
     answer,
     groundingScore,
     claims,
@@ -665,7 +697,7 @@ export async function runGroundTruthCheck(
 async function persist(
   db: Db,
   userId: string | null,
-  result: Omit<CheckResult, "id" | "createdAt">,
+  result: Omit<CheckResult, "id" | "createdAt" | "imageUrl"> & { imagePath: string | null },
 ): Promise<CheckResult> {
   const { data: check, error } = await db
     .from("gt_checks")
@@ -673,6 +705,8 @@ async function persist(
       user_id: userId,
       input_text: result.inputText,
       input_kind: result.inputKind,
+      image_url: result.imagePath,
+      ocr_text: result.ocrText,
       answer: result.answer,
       grounding_score: result.groundingScore,
       retrieval_stats: result.retrievalStats,
@@ -741,6 +775,8 @@ async function persist(
     createdAt: check.created_at,
     inputText: result.inputText,
     inputKind: result.inputKind,
+    imageUrl: await signImage(db, result.imagePath),
+    ocrText: result.ocrText ?? null,
     answer: result.answer,
     groundingScore: result.groundingScore,
     retrievalStats: result.retrievalStats,
@@ -751,7 +787,7 @@ async function persist(
 export async function loadCheck(db: Db, checkId: string): Promise<CheckResult | null> {
   const { data: check } = await db
     .from("gt_checks")
-    .select("id, input_text, input_kind, answer, grounding_score, retrieval_stats, created_at")
+    .select("id, input_text, input_kind, image_url, ocr_text, answer, grounding_score, retrieval_stats, created_at")
     .eq("id", checkId)
     .maybeSingle();
   if (!check) return null;
@@ -796,6 +832,8 @@ export async function loadCheck(db: Db, checkId: string): Promise<CheckResult | 
     id: check.id,
     inputText: check.input_text,
     inputKind: (check.input_kind as CheckResult["inputKind"]) ?? "question",
+    imageUrl: await signImage(db, check.image_url ?? null),
+    ocrText: check.ocr_text ?? null,
     answer: check.answer ?? "",
     groundingScore: Number(check.grounding_score ?? 0),
     retrievalStats: {
