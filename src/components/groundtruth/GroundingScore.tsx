@@ -38,11 +38,15 @@ export function GroundingScore({ claims, score }: { claims: Claim[]; score: numb
   const total = claims.reduce((sum, c) => sum + (STATUS_WEIGHTS[c.status] ?? 0), 0);
 
   return (
-    <div style={style.wash} className="gt-rise elev-3 relative overflow-hidden rounded-xl border p-4 pl-5">
+    <div style={style.wash} className="gt-rise gt-lift elev-3 relative overflow-hidden rounded-xl border p-4 pl-5">
       <span aria-hidden="true" style={style.bar} className="absolute inset-y-0 left-0 w-1.5" />
       <span
         aria-hidden="true"
         className="seal-sheen pointer-events-none absolute inset-0 opacity-60"
+      />
+      <span
+        aria-hidden="true"
+        className="gt-aurora pointer-events-none absolute -right-10 -top-12 size-40 opacity-40"
       />
       <button
         type="button"
