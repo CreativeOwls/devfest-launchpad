@@ -90,6 +90,9 @@ export function EvidencePanel({
               <StatusDot status={revealed ? claim.status : undefined} pending={!revealed} className="mt-0.5" />
               <div className="min-w-0">
                 <p className="text-sm font-medium leading-snug text-foreground">{claim.text}</p>
+                {claim.context ? (
+                  <p className="mt-1 text-xs leading-snug text-muted-foreground">{claim.context}</p>
+                ) : null}
                 <div className="mt-2">
                   <StatusPill status={revealed ? claim.status : undefined} pending={!revealed} />
                 </div>

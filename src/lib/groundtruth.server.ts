@@ -300,6 +300,23 @@ class RetrievalBudget {
     return true;
   }
 
+  /** True when a whole-task or global cap makes further live calls impossible. */
+  get exhausted(): boolean {
+    return (
+      this.budgetPaused ||
+      this.totalCalls >= LIMITS.maxCallsPerTask ||
+      this.scrapes >= LIMITS.maxScrapesPerTask
+    );
+  }
+
+  claimSearches(claimIndex: number): number {
+    return this.perClaimSearches.get(claimIndex) ?? 0;
+  }
+
+  claimScrapes(claimIndex: number): number {
+    return this.perClaimScrapes.get(claimIndex) ?? 0;
+  }
+
   /** Scrape slots left for this claim, ignoring the global budgets. */
   claimScrapeAttemptsLeft(claimIndex: number): number {
     return Math.max(LIMITS.maxScrapesPerClaim - (this.perClaimScrapes.get(claimIndex) ?? 0), 0);
@@ -472,23 +489,62 @@ async function scrapeWithCache(
 
 type Retrieved = { page: ScrapedPage; tier: number; snippet: string };
 
-async function decompose(input: string): Promise<string[]> {
+/** A decomposed claim plus the context that makes it checkable on its own. */
+type AtomicClaim = {
+  text: string;
+  /** Who/what/when the claim refers to, in one short phrase. */
+  context: string;
+  /** Named organisations/people — used for official-source (Tier 1) detection. */
+  entities: string[];
+  /** Search query built from the claim + its context. */
+  query: string;
+  /** Financial/fund claim → worth an SEC/EDGAR query. */
+  financial: boolean;
+};
+
+async function decompose(input: string): Promise<AtomicClaim[]> {
   const raw = await callAi(
     "You extract atomic, checkable factual claims from text. Respond with JSON only.",
     `Extract the atomic factual claims from the input below. Ignore opinions, predictions and rhetorical questions. If the input is a question rather than an assertion, produce the 1-3 factual sub-questions that must be verified to answer it, phrased as checkable statements.
 
 Order the claims by how check-worthy they are: the most consequential, most falsifiable claims first.
 
-Return JSON: {"claims": ["...", "..."]} with at most 12 claims, each a single self-contained sentence.
+For EACH claim also return:
+- "context": a short phrase from (or grounded in) the source giving the claim its who/what/when, so the claim is understandable standalone. Example: for "is an investor in SpaceX" → "Andreessen Horowitz is an investor in SpaceX (per the WSJ article on its Machine Age fund)".
+- "entities": the named organisations or people the claim is about, full proper names, most important first.
+- "query": a web search query that would find evidence — always include the main entity name plus the key qualifier (fund name, amount, role, date). No quotes, no operators.
+- "financial": true if the claim concerns a fund launch, raise, filing, valuation, acquisition or other securities/financial event.
+
+Return JSON: {"claims":[{"text":"...","context":"...","entities":["..."],"query":"...","financial":false}]} with at most 12 claims, each "text" a single self-contained sentence.
 
 INPUT:
 """${input.slice(0, 6000)}"""`,
   );
   const parsed = parseJson<{ claims?: unknown }>(raw, {});
-  const claims = Array.isArray(parsed.claims) ? parsed.claims : [];
-  return claims
-    .filter((c): c is string => typeof c === "string" && c.trim().length > 0)
-    .map((c) => c.trim());
+  const rows = Array.isArray(parsed.claims) ? parsed.claims : [];
+
+  return rows
+    .map((row) => {
+      const r = (typeof row === "string" ? { text: row } : row) as Record<string, unknown>;
+      const text = typeof r["text"] === "string" ? r["text"].trim() : "";
+      if (!text) return null;
+      const context = typeof r["context"] === "string" ? r["context"].trim() : "";
+      const entities = Array.isArray(r["entities"])
+        ? r["entities"].filter((e): e is string => typeof e === "string" && e.trim().length > 1)
+        : [];
+      const query =
+        typeof r["query"] === "string" && r["query"].trim()
+          ? r["query"].trim()
+          : [entities[0], text].filter(Boolean).join(" ");
+      return {
+        text,
+        context,
+        entities,
+        query: query.slice(0, 300),
+        financial: r["financial"] === true,
+      } satisfies AtomicClaim;
+    })
+    .filter((c): c is AtomicClaim => c !== null);
 }
 
 /** A claim is well grounded once it has one Tier 1 source or two Tier 1-2 sources. */
@@ -498,45 +554,66 @@ function isWellGrounded(found: Retrieved[]): boolean {
   return tier1 >= 1 || tier12 >= 2;
 }
 
-async function retrieve(
+/** Ranked candidate URLs for a claim: official/primary hosts first. */
+function rankHits(hits: SearchHit[], claim: AtomicClaim): SearchHit[] {
+  const seen = new Set<string>();
+  return hits
+    .filter((h) => {
+      const key = normalizeUrl(h.url);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .map((h) => ({ hit: h, tier: classifyTier(h.url, claim.entities) }))
+    .sort((a, b) => a.tier - b.tier)
+    .map((r) => r.hit);
+}
+
+/**
+ * Scrape one more candidate for a claim, honouring early exit and the caps.
+ * Returns true when a source was added.
+ */
+async function scrapeNext(
   db: Db,
   budget: RetrievalBudget,
   claimIndex: number,
-  claim: string,
-): Promise<Retrieved[]> {
-  const hits = await searchWithCache(db, budget, claimIndex, claim);
-  if (hits.length === 0) return [];
-
-  const found: Retrieved[] = [];
-
-  // Sequential on purpose: early exit and the per-task counter need ordered decisions.
-  for (const hit of hits) {
-    if (budget.claimScrapeAttemptsLeft(claimIndex) === 0) {
-      budget.markCap("scrapes-per-claim");
-      break;
-    }
+  claim: AtomicClaim,
+  queue: SearchHit[],
+  found: Retrieved[],
+): Promise<boolean> {
+  while (queue.length > 0) {
     if (isWellGrounded(found)) {
       budget.markCap("early-exit");
-      break;
+      return false;
+    }
+    if (budget.claimScrapeAttemptsLeft(claimIndex) === 0) {
+      budget.markCap("scrapes-per-claim");
+      return false;
     }
 
+    const hit = queue.shift()!;
     const page = await scrapeWithCache(db, budget, claimIndex, hit.url);
-    if (!page) continue;
+    if (!page) {
+      // No slot granted (a cap fired) — stop rather than burn the queue.
+      if (budget.exhausted) return false;
+      continue;
+    }
 
     found.push({
       page: { ...page, title: page.title ?? hit.title ?? null },
-      tier: classifyTier(page.canonicalUrl ?? hit.url),
+      tier: classifyTier(page.canonicalUrl ?? hit.url, claim.entities),
       snippet: (page.content || hit.description || "").slice(0, 400),
     });
+    return true;
   }
-
-  return found.sort((a, b) => a.tier - b.tier);
+  return false;
 }
+
 
 
 type Judgement = { status: ClaimStatus; justification: string; drift: Drift };
 
-async function judge(claim: string, evidence: Retrieved[]): Promise<Judgement> {
+async function judge(claim: AtomicClaim, evidence: Retrieved[]): Promise<Judgement> {
   if (evidence.length === 0) {
     return {
       status: "Untraceable",
@@ -554,15 +631,16 @@ async function judge(claim: string, evidence: Retrieved[]): Promise<Judgement> {
 
   const raw = await callAi(
     "You are a strict evidence judge. You never invent evidence. Respond with JSON only.",
-    `CLAIM: ${claim}
-
+    `CLAIM: ${claim.text}
+${claim.context ? `CONTEXT: ${claim.context}\n` : ""}
 EVIDENCE:
 ${evidenceBlock}
 
 Assign exactly one status from: ${STATUS_ORDER.join(", ")}.
-- "Primary Source": a Tier 1 source directly states the claim.
+- "Primary Source": a Tier 1 source directly states the claim. Tier 1 includes an organisation's OWN official site, newsroom or announcement about itself, and SEC/EDGAR filings.
 - "Corroborated": two or more independent sources (Tier 1-3) support it.
 - "Weak Evidence": only low-tier or indirect support.
+
 - "Untraceable": the evidence does not address the claim.
 - "Contradicted": the evidence states the opposite.
 
@@ -678,31 +756,72 @@ export async function runGroundTruthCheck(
   const authorshipPromise = assessAiAuthorship(media?.ocrText?.trim() || trimmed);
 
   const allClaims = await decompose(trimmed);
-  const claimTexts = allClaims.slice(0, LIMITS.maxClaimsPerTask);
+  const atomics = allClaims.slice(0, LIMITS.maxClaimsPerTask);
   if (allClaims.length > LIMITS.maxClaimsPerTask) {
     budget.markCap("claims-per-task");
-    budget.unverifiedClaims = allClaims.slice(LIMITS.maxClaimsPerTask);
+    budget.unverifiedClaims = allClaims.slice(LIMITS.maxClaimsPerTask).map((c) => c.text);
   }
 
-  // Sequential across claims so the per-task call counter is authoritative.
-  const retrievals: Retrieved[][] = [];
-  for (let i = 0; i < claimTexts.length; i += 1) {
-    retrievals.push(await retrieve(db, budget, i, claimTexts[i]!));
+  /*
+   * Retrieval is breadth-first on purpose. Pass 1 gives EVERY claim one search
+   * and one scrape of its best-ranked result, so no claim can be starved by an
+   * earlier claim spending the whole budget. Only then does pass 2 top up the
+   * claims that are still weak, one scrape per round, round-robin.
+   */
+  const retrievals: Retrieved[][] = atomics.map(() => []);
+  const queues: SearchHit[][] = atomics.map(() => []);
+
+  for (let i = 0; i < atomics.length; i += 1) {
+    const claim = atomics[i]!;
+    queues[i] = rankHits(await searchWithCache(db, budget, i, claim.query), claim);
+    await scrapeNext(db, budget, i, claim, queues[i]!, retrievals[i]!);
   }
+
+  // Pass 2: SEC/EDGAR lookup for still-weak financial claims (fund filings are primary).
+  for (let i = 0; i < atomics.length; i += 1) {
+    const claim = atomics[i]!;
+    if (!claim.financial || isWellGrounded(retrievals[i]!)) continue;
+    const secQuery = `${[claim.entities[0], claim.query].filter(Boolean).join(" ")} site:sec.gov EDGAR filing`;
+    const secHits = rankHits(await searchWithCache(db, budget, i, secQuery), claim);
+    queues[i] = [...secHits, ...queues[i]!];
+    await scrapeNext(db, budget, i, claim, queues[i]!, retrievals[i]!);
+  }
+
+  // Pass 3: round-robin top-up for whatever is still weak.
+  for (let round = 1; round < LIMITS.maxScrapesPerClaim; round += 1) {
+    let progressed = false;
+    for (let i = 0; i < atomics.length; i += 1) {
+      if (budget.exhausted) break;
+      if (isWellGrounded(retrievals[i]!)) continue;
+      if (await scrapeNext(db, budget, i, atomics[i]!, queues[i]!, retrievals[i]!))
+        progressed = true;
+    }
+    if (!progressed || budget.exhausted) break;
+  }
+
+  for (const list of retrievals) list.sort((a, b) => a.tier - b.tier);
 
   const judgements = await Promise.all(
-    claimTexts.map((claim, i) => judge(claim, retrievals[i] ?? [])),
+    atomics.map((claim, i) => judge(claim, retrievals[i] ?? [])),
   );
 
   const stats = budget.toStats();
   console.info(
     `[groundtruth] retrieval cost — searches=${stats.searches} scrapes=${stats.scrapes} cacheHits=${stats.cacheHits} cacheMisses=${stats.cacheMisses} capsHit=${stats.capsHit.join("|") || "none"} budgetPaused=${stats.budgetPaused} daily=${stats.dailyCallsUsed}/${LIMITS.dailyCallBudget} event=${stats.eventCallsUsed}/${LIMITS.eventCallBudget} unverifiedClaims=${stats.unverifiedClaims.length}`,
   );
+  console.info(
+    `[groundtruth] per-claim spread — ${atomics
+      .map(
+        (c, i) =>
+          `#${i + 1}{s:${budget.claimSearches(i)},p:${budget.claimScrapes(i)},src:${retrievals[i]!.length},t1:${retrievals[i]!.filter((r) => r.tier === 1).length}}`,
+      )
+      .join(" ")}`,
+  );
 
 
   // Assign global citation numbers.
   let citation = 0;
-  const claims: Claim[] = claimTexts.map((text, i) => {
+  const claims: Claim[] = atomics.map((atomic, i) => {
     const evidence = retrievals[i] ?? [];
     const sources: EvidenceSource[] = evidence.map((e) => {
       citation += 1;
@@ -722,13 +841,15 @@ export async function runGroundTruthCheck(
     return {
       id: `${i}`,
       position: i,
-      text,
+      text: atomic.text,
+      context: atomic.context || null,
       status: judgement.status,
       justification: judgement.justification,
       drift: judgement.drift,
       sources,
     };
   });
+
 
   const answer = await compose(
     trimmed,
@@ -783,6 +904,7 @@ async function persist(
         user_id: userId,
         position: claim.position,
         text: claim.text,
+        context: claim.context,
         status: claim.status,
         justification: claim.justification,
         drift: claim.drift,
@@ -852,7 +974,7 @@ export async function loadCheck(db: Db, checkId: string): Promise<CheckResult | 
 
   const { data: claimRows } = await db
     .from("gt_claims")
-    .select("id, position, text, status, justification, drift")
+    .select("id, position, text, context, status, justification, drift")
     .eq("check_id", checkId)
     .order("position", { ascending: true });
 
@@ -868,6 +990,7 @@ export async function loadCheck(db: Db, checkId: string): Promise<CheckResult | 
     id: c.id,
     position: c.position,
     text: c.text,
+    context: c.context ?? null,
     status: c.status as ClaimStatus,
     justification: c.justification,
     drift: (c.drift as Drift) ?? null,

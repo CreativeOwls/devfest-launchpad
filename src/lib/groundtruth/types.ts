@@ -54,6 +54,8 @@ export type Claim = {
   id: string;
   position: number;
   text: string;
+  /** Short who/what/when phrase from the source that makes the claim standalone. */
+  context: string | null;
   status: ClaimStatus;
   justification: string | null;
   drift: Drift;

@@ -1,0 +1,1 @@
+ALTER TABLE public.gt_claims ADD COLUMN IF NOT EXISTS context text;
