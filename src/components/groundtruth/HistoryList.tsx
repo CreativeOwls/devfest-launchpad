@@ -45,7 +45,7 @@ export function HistoryList({
               onClick={() => onSelect(check.id)}
               aria-current={activeId === check.id ? "true" : undefined}
               className={cn(
-                "w-full rounded-lg border border-transparent px-3 py-2.5 text-left text-xs transition-[background-color,border-color,box-shadow,transform] duration-150 ease-[cubic-bezier(0.2,0.7,0.2,1)] hover:-translate-y-px hover:border-border hover:bg-card hover:elev-1 active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60",
+                "gt-lift w-full rounded-lg border border-transparent px-3 py-2.5 text-left text-xs hover:border-border hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60",
                 activeId === check.id && "border-accent-blue/40 bg-card elev-1",
               )}
 

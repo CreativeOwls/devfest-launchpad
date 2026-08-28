@@ -43,6 +43,7 @@ export function AnswerBody({ answer, claims, activeClaimId, onSelectClaim }: Pro
             style={{ animationDelay: `${Math.min(index, 10) * 45}ms`, ...(claim ? style.wash : {}) }}
             className={cn(
               "gt-rise relative overflow-hidden rounded-lg px-3 py-2.5 pl-4 transition-all duration-200",
+              claim && "gt-lift hover:border-foreground/15",
               claim
                 ? "cursor-pointer border"
                 : "border border-transparent px-2 py-1 pl-2",
