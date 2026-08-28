@@ -184,11 +184,8 @@ export function HeroInput({
         <img
           src={logoAsset.url}
           alt="GroundTruth"
-          className="h-12 w-auto object-contain sm:h-16 lg:h-20"
+          className="h-14 w-auto object-contain sm:h-20 lg:h-24"
         />
-        <h2 className="wordmark text-4xl text-foreground sm:text-6xl lg:text-7xl">
-          Ground<span className="text-brand">Truth</span>
-        </h2>
       </div>
       <p className="mt-3 text-sm font-medium tracking-wide text-muted-foreground">
         Answers with receipts.
