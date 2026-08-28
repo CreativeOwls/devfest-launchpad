@@ -64,6 +64,53 @@ async function callAi(system: string, user: string): Promise<string> {
   return data.choices?.[0]?.message?.content ?? "";
 }
 
+/** OCR a screenshot with the gateway's default vision-capable model. */
+export async function extractTextFromImage(dataUrl: string): Promise<string> {
+  const key = process.env["LOVABLE_API_KEY"];
+  if (!key) throw new Error("LOVABLE_API_KEY is not configured");
+
+  const res = await fetch(AI_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${key}`,
+      "Lovable-API-Key": key,
+    },
+    body: JSON.stringify({
+      model: AI_MODEL,
+      messages: [
+        {
+          role: "system",
+          content:
+            "You transcribe screenshots. Return ONLY the text visible in the image, preserving reading order. No commentary, no markdown. If there is no readable text, return exactly: NO_TEXT",
+        },
+        {
+          role: "user",
+          content: [
+            { type: "text", text: "Transcribe the text in this screenshot." },
+            { type: "image_url", image_url: { url: dataUrl } },
+          ],
+        },
+      ],
+    }),
+  });
+
+  if (!res.ok) {
+    const body = await res.text();
+    console.error(`[groundtruth] OCR gateway ${res.status}: ${body}`);
+    throw new Error("Couldn't read text from this image — try pasting the text instead.");
+  }
+
+  const data = (await res.json()) as { choices?: { message?: { content?: string } }[] };
+  const text = (data.choices?.[0]?.message?.content ?? "").trim();
+  if (!text || text === "NO_TEXT" || text.length < 3) {
+    throw new Error("Couldn't read text from this image — try pasting the text instead.");
+  }
+  return text;
+}
+
+
+
 function parseJson<T>(raw: string, fallback: T): T {
   const cleaned = raw
     .trim()
