@@ -16,9 +16,7 @@ function relativeTime(iso: string): string {
   return new Date(iso).toLocaleDateString();
 }
 
-function scoreClasses(score: number | null): string {
-  return `${scoreStatusStyle(score).pill} font-bold`;
-}
+
 
 
 export function HistoryList({
@@ -58,10 +56,8 @@ export function HistoryList({
               </span>
               <span className="mt-1 flex items-center gap-2">
                 <span
-                  className={cn(
-                    "rounded-full border px-1.5 py-px text-[10px] tabular-nums",
-                    scoreClasses(check.groundingScore),
-                  )}
+                  style={scoreStatusStyle(check.groundingScore).pill}
+                  className="rounded-full border px-1.5 py-px text-[10px] font-bold tabular-nums"
                 >
                   {check.groundingScore === null ? "—" : `${Math.round(check.groundingScore)}%`}
                 </span>
