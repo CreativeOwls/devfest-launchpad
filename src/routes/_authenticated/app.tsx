@@ -137,7 +137,12 @@ function AppPage() {
 
   const claims = result?.claims ?? [];
   const evidence = (
-    <EvidencePanel claims={claims} activeClaimId={activeClaimId} revealedCount={revealedCount} />
+    <EvidencePanel
+      claims={claims}
+      activeClaimId={activeClaimId}
+      revealedCount={revealedCount}
+      stats={result?.retrievalStats}
+    />
   );
 
   return (
