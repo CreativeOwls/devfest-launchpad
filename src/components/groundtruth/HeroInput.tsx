@@ -1,6 +1,7 @@
 import { ImagePlus, X } from "lucide-react";
 import { useRef, useState } from "react";
 
+import logoAsset from "@/assets/groundtruth-logo.png.asset.json";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
@@ -179,9 +180,16 @@ export function HeroInput({
 
   return (
     <section className="py-6 text-center sm:py-10 lg:py-12">
-      <h2 className="wordmark text-3xl sm:text-5xl lg:text-6xl">
-        Ground<span className="text-brand">Truth</span>
-      </h2>
+      <div className="flex flex-col items-center gap-3 sm:gap-4">
+        <img
+          src={logoAsset.url}
+          alt="GroundTruth"
+          className="h-12 w-auto object-contain sm:h-16 lg:h-20"
+        />
+        <h2 className="wordmark text-4xl text-foreground sm:text-6xl lg:text-7xl">
+          Ground<span className="text-brand">Truth</span>
+        </h2>
+      </div>
       <p className="mt-3 text-sm font-medium tracking-wide text-muted-foreground">
         Answers with receipts.
       </p>

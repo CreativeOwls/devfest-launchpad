@@ -416,8 +416,9 @@
   transform-box: fill-box;
 }
 .gt-radar-sweep-idle {
-  animation-duration: 9s;
-  opacity: 0.55;
+  animation: none;
+  opacity: 0.32;
+  transform-box: fill-box;
 }
 .gt-radar-ping {
   animation: gt-radar-ping 1.8s var(--ease-instrument, ease-out) infinite;
@@ -431,7 +432,8 @@
 
 @media (prefers-reduced-motion: reduce) {
   .gt-radar-sweep {
-    animation: gt-radar-spin 24s linear infinite;
+    animation: none;
+    opacity: 0.6;
   }
   .gt-radar-ping,
   .gt-radar-core,
