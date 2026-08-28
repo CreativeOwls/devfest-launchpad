@@ -585,9 +585,11 @@ export async function runGroundTruthCheck(
   db: Db,
   userId: string | null,
   input: string,
+  forcedKind?: CheckResult["inputKind"],
 ): Promise<CheckResult> {
   const trimmed = input.trim();
-  const inputKind: "question" | "pasted" = trimmed.length > 280 ? "pasted" : "question";
+  const inputKind: CheckResult["inputKind"] =
+    forcedKind ?? (trimmed.length > 280 ? "pasted" : "question");
 
   const budget = new RetrievalBudget();
 
@@ -793,7 +795,7 @@ export async function loadCheck(db: Db, checkId: string): Promise<CheckResult | 
   return {
     id: check.id,
     inputText: check.input_text,
-    inputKind: (check.input_kind as "question" | "pasted") ?? "question",
+    inputKind: (check.input_kind as CheckResult["inputKind"]) ?? "question",
     answer: check.answer ?? "",
     groundingScore: Number(check.grounding_score ?? 0),
     retrievalStats: {
