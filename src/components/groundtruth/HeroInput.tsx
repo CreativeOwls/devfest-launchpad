@@ -1,7 +1,7 @@
 import { ImagePlus, X } from "lucide-react";
 import { useRef, useState } from "react";
 
-import logoAsset from "@/assets/groundtruth-logo.png.asset.json";
+import logoAsset from "@/assets/groundtruth-logo-transparent.png";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
@@ -186,7 +186,7 @@ export function HeroInput({
       />
       <div className="gt-rise flex flex-col items-center gap-3 sm:gap-4">
         <img
-          src={logoAsset.url}
+          src={logoAsset}
           alt="GroundTruth"
           className="h-20 w-auto object-contain sm:h-28 lg:h-36"
         />

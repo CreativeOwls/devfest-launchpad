@@ -7,7 +7,7 @@ import { PIPELINE_STAGES } from "@/lib/groundtruth/stages";
 import { statusStyle } from "@/lib/groundtruth/statusStyles";
 import type { CheckResult, ClaimStatus } from "@/lib/groundtruth/types";
 import { cn } from "@/lib/utils";
-import logoAsset from "@/assets/groundtruth-logo.png.asset.json";
+import logoAsset from "@/assets/groundtruth-logo-transparent.png";
 
 export { PIPELINE_STAGES };
 
@@ -105,7 +105,7 @@ export function ActivityBand({
       <div className="flex w-full items-center gap-2 px-3 py-2 sm:gap-4 sm:px-5">
         <div className="flex min-w-0 shrink-0 items-center gap-2">
           <img
-            src={logoAsset.url}
+            src={logoAsset}
             alt="GroundTruth"
             className="h-7 w-auto shrink-0 object-contain sm:h-11 lg:h-12"
           />
