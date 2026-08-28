@@ -82,7 +82,7 @@ export function HeroInput({
         void takeFile(event.dataTransfer.files[0]);
       }}
       className={cn(
-        "card-elevated rounded-2xl border border-border bg-card p-3 transition-colors",
+        "elev-2 rounded-2xl border border-border bg-card p-3 transition-[box-shadow,border-color,background-color] duration-200 focus-within:elev-3",
         dragging && "border-accent-blue/60 bg-accent-blue/5",
         !compact && "p-5",
       )}
@@ -154,7 +154,7 @@ export function HeroInput({
           type="submit"
           disabled={pending}
           size={compact ? "sm" : "lg"}
-          className="rounded-full px-6"
+          className="rounded-full px-6 font-semibold tracking-tight"
         >
           {pending ? "Checking…" : "Check It"}
         </Button>
