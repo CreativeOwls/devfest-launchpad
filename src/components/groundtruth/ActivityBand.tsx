@@ -110,7 +110,7 @@ export function ActivityBand({
   const daily = stats?.dailyCallsUsed ?? 0;
 
   return (
-    <header className="sticky top-0 z-30 w-full border-b border-border bg-background/90 backdrop-blur">
+    <header className="sticky top-0 z-40 w-full border-b border-border bg-background/90 backdrop-blur elev-1">
       <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-2">
         <div className="flex min-w-0 items-center gap-2">
           <img
@@ -163,9 +163,9 @@ export function ActivityBand({
                 <li
                   key={label}
                   className={cn(
-                    "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 transition-colors",
+                    "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 transition-[background-color,border-color,color,box-shadow] duration-200",
                     current
-                      ? "border-brand/50 bg-brand/10 text-brand"
+                      ? "border-brand/50 bg-brand/10 text-brand shadow-[0_0_0_3px_color-mix(in_oklab,var(--brand)_12%,transparent)]"
                       : done
                         ? "border-accent-green/40 text-accent-green"
                         : "border-border text-muted-foreground",
@@ -174,7 +174,7 @@ export function ActivityBand({
                   {current ? (
                     <Loader2 className="size-3 animate-spin" aria-hidden="true" />
                   ) : done ? (
-                    <Check className="size-3" aria-hidden="true" />
+                    <Check className="gt-tick size-3" aria-hidden="true" />
                   ) : null}
                   {label}
                 </li>
@@ -185,7 +185,7 @@ export function ActivityBand({
           <div
             ref={streamRef}
             aria-live="polite"
-            className="mt-2 max-h-28 overflow-y-auto rounded-lg border border-border bg-secondary/50 px-3 py-2 font-mono text-[11px] leading-relaxed"
+            className="elev-1 mt-2 max-h-28 overflow-y-auto rounded-lg border border-border bg-secondary/50 px-3 py-2 font-mono text-[11px] leading-relaxed"
           >
             {lines.length === 0 ? (
               <p className="text-muted-foreground">idle — submit a check to watch the agent work</p>
@@ -194,7 +194,7 @@ export function ActivityBand({
                 <p
                   key={`${index}-${line.text}`}
                   className={cn(
-                    "truncate text-muted-foreground",
+                    "gt-rise truncate text-muted-foreground",
                     line.tone && TONE_TEXT[line.tone],
                     line.status && statusStyle(line.status).text,
                     line.status && "font-semibold",
@@ -202,6 +202,11 @@ export function ActivityBand({
                 >
                   <span className="mr-2 text-foreground/30">›</span>
                   {line.text}
+                  {active && index === lines.length - 1 ? (
+                    <span aria-hidden="true" className="gt-caret ml-1 text-foreground/60">
+                      ▍
+                    </span>
+                  ) : null}
                 </p>
               ))
             )}
