@@ -161,7 +161,7 @@ async function scrapeWithCache(db: Db, url: string): Promise<ScrapedPage | null>
       return null;
     }
     const json = (await res.json()) as Record<string, unknown>;
-    const doc = (json.data ?? json) as {
+    const doc = (json["data"] ?? json) as {
       markdown?: string;
       metadata?: Record<string, unknown>;
     };
