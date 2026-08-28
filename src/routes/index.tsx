@@ -1,12 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 import { ConstellationBackdrop } from "@/components/ConstellationBackdrop";
-import { GoogleSignInButton } from "@/components/GoogleSignInButton";
+import { EnterButton } from "@/components/EnterButton";
 import { Wordmark } from "@/components/Wordmark";
 
 const TITLE = "PROJECT 4 — DevFest Hackathon Scaffold";
 const DESCRIPTION =
-  "PROJECT 4: a DevFest hackathon scaffold with an animated constellation backdrop and Google sign-in.";
+  "PROJECT 4: a DevFest hackathon scaffold with an animated constellation backdrop and a GroundTruth entry point.";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -31,7 +31,7 @@ function Index() {
 
       <div className="relative z-10 flex min-h-screen flex-col items-center justify-center gap-8 px-4">
         <Wordmark text="PROJECT 4" />
-        <GoogleSignInButton />
+        <EnterButton />
       </div>
     </main>
   );
