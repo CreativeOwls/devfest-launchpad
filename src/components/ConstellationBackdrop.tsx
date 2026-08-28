@@ -90,10 +90,12 @@ export function ConstellationBackdrop() {
       // Links
       for (let i = 0; i < dots.length; i++) {
         const a = dots[i];
+        if (!a) continue;
         const ax = a.x + offset.x;
         const ay = a.y + offset.y;
         for (let j = i + 1; j < dots.length; j++) {
           const b = dots[j];
+          if (!b) continue;
           const bx = b.x + offset.x;
           const by = b.y + offset.y;
           const dx = ax - bx;
