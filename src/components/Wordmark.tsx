@@ -20,7 +20,7 @@ export function Wordmark({ text }: { text: string }) {
 
   return (
     <h1
-      className="wordmark select-none text-center text-foreground pb-[0.1em] text-[19vw] sm:text-[17vw] lg:text-[16vw]"
+      className="wordmark select-none text-center text-foreground pb-[0.1em] text-[14vw] sm:text-[13vw] lg:text-[12.5vw]"
       aria-label={text}
     >
       {characters.map((char, index) => {
