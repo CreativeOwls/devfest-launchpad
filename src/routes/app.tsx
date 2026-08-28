@@ -9,6 +9,7 @@ import { ActivityBand } from "@/components/groundtruth/ActivityBand";
 import { AnswerBody } from "@/components/groundtruth/AnswerBody";
 
 import { ContextStrip } from "@/components/groundtruth/ContextStrip";
+import { SourcePanel } from "@/components/groundtruth/SourcePanel";
 import { EvidencePanel } from "@/components/groundtruth/EvidencePanel";
 import { GroundingScore } from "@/components/groundtruth/GroundingScore";
 import { HeroInput, type Attachment } from "@/components/groundtruth/HeroInput";
@@ -93,13 +94,19 @@ function AppPage() {
     mutationFn: async ({ image }: { image: Attachment | null }) => {
       let text = input.trim();
       let kind: "question" | "pasted" | "image" | undefined;
+      let imagePath: string | null = null;
+      let extractedText: string | null = null;
       if (image) {
-        const { text: extracted } = await ocrImageFn({ data: { image: image.dataUrl } });
+        const { text: extracted, imagePath: path } = await ocrImageFn({
+          data: { image: image.dataUrl },
+        });
         setOcrText(extracted);
+        extractedText = extracted;
+        imagePath = path;
         text = [text, extracted].filter(Boolean).join("\n\n").trim();
         kind = "image";
       }
-      return runCheckFn({ data: { input: text, kind } });
+      return runCheckFn({ data: { input: text, kind, imagePath, ocrText: extractedText } });
     },
     onSuccess: (check) => {
       setResult(check);
@@ -295,12 +302,12 @@ function AppPage() {
 
             {result ? (
               <div className="space-y-5">
-                {result.inputKind !== "question" ? (
-                  <ContextStrip
-                    text={result.inputText}
-                    label={result.inputKind === "image" ? "Read from screenshot" : "Pasted post"}
-                  />
-                ) : null}
+                <SourcePanel
+                  kind={result.inputKind}
+                  text={result.inputText}
+                  imageUrl={result.imageUrl}
+                  ocrText={result.ocrText}
+                />
 
                 <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                   {result.claims.length} claim{result.claims.length === 1 ? "" : "s"} detected ·{" "}
