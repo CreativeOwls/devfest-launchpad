@@ -4,9 +4,9 @@ import { ConstellationBackdrop } from "@/components/ConstellationBackdrop";
 import { EnterButton } from "@/components/EnterButton";
 import { Wordmark } from "@/components/Wordmark";
 
-const TITLE = "PROJECT 4 — DevFest Hackathon Scaffold";
+const TITLE = "GroundTruth — DevFest Hackathon Scaffold";
 const DESCRIPTION =
-  "PROJECT 4: a DevFest hackathon scaffold with an animated constellation backdrop and a GroundTruth entry point.";
+  "GroundTruth: a DevFest hackathon scaffold with an animated constellation backdrop and a GroundTruth entry point.";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -30,7 +30,7 @@ function Index() {
       <div className="pointer-events-none absolute inset-0 vignette" aria-hidden="true" />
 
       <div className="relative z-10 flex min-h-screen flex-col items-center justify-center gap-8 px-4">
-        <Wordmark text="PROJECT 4" />
+        <Wordmark text="GroundTruth" />
         <EnterButton />
       </div>
     </main>
