@@ -1,20 +1,16 @@
-import { Check, ChevronDown, Loader2 } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
+import { Radar } from "@/components/groundtruth/Radar";
+import { StageDots, StageRail, stageStates } from "@/components/groundtruth/StageRail";
 import { LIMITS, type RetrievalStats } from "@/lib/groundtruth/limits";
+import { PIPELINE_STAGES } from "@/lib/groundtruth/stages";
 import { statusStyle } from "@/lib/groundtruth/statusStyles";
 import type { CheckResult, ClaimStatus } from "@/lib/groundtruth/types";
 import { cn } from "@/lib/utils";
 import logoAsset from "@/assets/groundtruth-logo.png.asset.json";
 
-export const PIPELINE_STAGES = [
-  "Decomposing claims",
-  "Searching sources",
-  "Scraping evidence",
-  "Judging claims",
-  "Composing answer",
-  "Scoring",
-] as const;
+export { PIPELINE_STAGES };
 
 type Line = { text: string; tone?: "good" | "warn" | "bad" | undefined; status?: ClaimStatus | undefined };
 
@@ -97,6 +93,7 @@ export function ActivityBand({
   const streamRef = useRef<HTMLDivElement | null>(null);
   const lines = buildLines(pending, stage, result, revealedCount);
   const active = pending || (result !== null && revealedCount < result.claims.length);
+  const states = stageStates(pending, stage, result !== null);
 
   useEffect(() => {
     if (streamRef.current) streamRef.current.scrollTop = streamRef.current.scrollHeight;
@@ -110,21 +107,43 @@ export function ActivityBand({
   const daily = stats?.dailyCallsUsed ?? 0;
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-border bg-background/90 backdrop-blur elev-1">
-      <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-2">
-        <div className="flex min-w-0 items-center gap-2">
+    <header className="sticky top-0 z-40 w-full border-b border-border bg-background/92 backdrop-blur elev-1">
+      {/* Full-bleed top row — no max width, edge to edge */}
+      <div className="flex w-full items-center gap-2 px-3 py-2 sm:gap-4 sm:px-5">
+        <div className="flex min-w-0 shrink-0 items-center gap-2">
           <img
             src={logoAsset.url}
             alt="GroundTruth"
-            className="h-10 w-auto shrink-0 object-contain sm:h-12"
+            className="h-7 w-auto shrink-0 object-contain sm:h-11 lg:h-12"
           />
-          <span className="hidden text-[11px] text-muted-foreground sm:inline">
+          <span className="hidden text-[11px] text-muted-foreground xl:inline">
             Answers with receipts.
           </span>
         </div>
 
-        <div className="ml-auto flex items-center gap-2">
-          <span className="hidden items-center gap-2 rounded-full border border-border bg-secondary/70 px-2.5 py-1 text-[11px] tabular-nums text-muted-foreground sm:inline-flex">
+        {/* Radar + stage rail: the live "working" instrument */}
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          aria-expanded={open}
+          aria-label="Toggle live agent process"
+          className="flex min-w-0 flex-1 items-center gap-2 rounded-xl px-1 py-1 text-left transition-colors hover:bg-secondary/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 sm:gap-3 sm:px-2 lg:cursor-default lg:hover:bg-transparent"
+        >
+          <Radar
+            active={active}
+            className="h-8 sm:h-10 lg:h-11"
+            label={active ? "Agent working" : "Agent ready"}
+          />
+          <div className="hidden min-w-0 flex-1 lg:block">
+            <StageRail states={states} />
+          </div>
+          <div className="min-w-0 flex-1 lg:hidden">
+            <StageDots states={states} />
+          </div>
+        </button>
+
+        <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+          <span className="hidden items-center gap-2 rounded-full border border-border bg-secondary/70 px-2.5 py-1 text-[11px] tabular-nums text-muted-foreground md:inline-flex">
             <span
               className={cn(
                 "inline-block size-1.5 rounded-full",
@@ -143,7 +162,7 @@ export function ActivityBand({
             onClick={() => setExpanded((v) => !v)}
             aria-expanded={open}
             aria-label="Toggle live agent process"
-            className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+            className="hidden size-9 place-items-center rounded-md text-muted-foreground sm:grid transition-colors hover:bg-secondary hover:text-foreground"
           >
             <ChevronDown
               className={cn("size-4 transition-transform", open && "rotate-180")}
@@ -154,38 +173,21 @@ export function ActivityBand({
       </div>
 
       {open ? (
-        <div className="mx-auto max-w-7xl px-4 pb-3">
-          <ol className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px]">
-            {PIPELINE_STAGES.map((label, index) => {
-              const done = pending ? index < stage : result !== null;
-              const current = pending && index === stage;
-              return (
-                <li
-                  key={label}
-                  className={cn(
-                    "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 transition-[background-color,border-color,color,box-shadow] duration-200",
-                    current
-                      ? "border-brand/50 bg-brand/10 text-brand shadow-[0_0_0_3px_color-mix(in_oklab,var(--brand)_12%,transparent)]"
-                      : done
-                        ? "border-accent-green/40 text-accent-green"
-                        : "border-border text-muted-foreground",
-                  )}
-                >
-                  {current ? (
-                    <Loader2 className="size-3 animate-spin" aria-hidden="true" />
-                  ) : done ? (
-                    <Check className="gt-tick size-3" aria-hidden="true" />
-                  ) : null}
-                  {label}
-                </li>
-              );
-            })}
-          </ol>
+        <div className="w-full space-y-2 px-3 pb-3 sm:px-5">
+          <div className="lg:hidden">
+            <StageRail states={states} />
+          </div>
+
+          <div className="flex items-center justify-between gap-2 md:hidden">
+            <span className="text-[11px] tabular-nums text-muted-foreground">
+              {active ? "Working" : "Ready"} · {daily}/{LIMITS.dailyCallBudget} today
+            </span>
+          </div>
 
           <div
             ref={streamRef}
             aria-live="polite"
-            className="elev-1 mt-2 max-h-28 overflow-y-auto rounded-lg border border-border bg-secondary/50 px-3 py-2 font-mono text-[11px] leading-relaxed"
+            className="elev-1 max-h-28 overflow-y-auto rounded-lg border border-border bg-secondary/50 px-3 py-2 font-mono text-[11px] leading-relaxed"
           >
             {lines.length === 0 ? (
               <p className="text-muted-foreground">idle — submit a check to watch the agent work</p>

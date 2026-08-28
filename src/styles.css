@@ -386,3 +386,71 @@
     transition-duration: 1ms !important;
   }
 }
+
+/* ── Radar: live "agent working" motif ────────────────────────────────── */
+@keyframes gt-radar-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes gt-radar-ping {
+  0% {
+    opacity: 0.5;
+    transform: scale(0.55);
+  }
+  80% {
+    opacity: 0;
+    transform: scale(1.25);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.25);
+  }
+}
+@keyframes gt-radar-core {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+@keyframes gt-stage-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--brand) 32%, transparent);
+  }
+  60% {
+    box-shadow: 0 0 0 5px color-mix(in oklab, var(--brand) 0%, transparent);
+  }
+}
+
+.gt-radar-sweep {
+  animation: gt-radar-spin 2.4s linear infinite;
+  transform-box: fill-box;
+}
+.gt-radar-sweep-idle {
+  animation-duration: 9s;
+  opacity: 0.55;
+}
+.gt-radar-ping {
+  animation: gt-radar-ping 1.8s var(--ease-instrument, ease-out) infinite;
+}
+.gt-radar-core {
+  animation: gt-radar-core 1.4s ease-in-out infinite;
+}
+.gt-stage-pulse {
+  animation: gt-stage-pulse 1.6s ease-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gt-radar-sweep {
+    animation: gt-radar-spin 24s linear infinite;
+  }
+  .gt-radar-ping,
+  .gt-radar-core,
+  .gt-stage-pulse {
+    animation: none !important;
+  }
+}

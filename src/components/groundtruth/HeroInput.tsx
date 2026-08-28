@@ -84,7 +84,7 @@ export function HeroInput({
       className={cn(
         "elev-2 rounded-2xl border border-border bg-card p-3 transition-[box-shadow,border-color,background-color] duration-200 focus-within:elev-3",
         dragging && "border-accent-blue/60 bg-accent-blue/5",
-        !compact && "p-5",
+        !compact && "p-4 sm:p-5",
       )}
     >
       <Textarea
@@ -94,7 +94,7 @@ export function HeroInput({
         placeholder="Paste a viral post, an article, or ask a question…"
         className={cn(
           "resize-y border-0 bg-transparent px-0 shadow-none focus-visible:ring-0",
-          compact ? "min-h-12" : "min-h-36 text-base leading-relaxed",
+          compact ? "min-h-12" : "min-h-32 text-base leading-relaxed sm:min-h-36",
         )}
       />
 
@@ -122,7 +122,7 @@ export function HeroInput({
         </div>
       ) : null}
 
-      <div className="mt-3 flex items-center justify-between gap-3">
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <input
             ref={fileInput}
@@ -154,7 +154,7 @@ export function HeroInput({
           type="submit"
           disabled={pending}
           size={compact ? "sm" : "lg"}
-          className="rounded-full px-6 font-semibold tracking-tight"
+          className="shrink-0 rounded-full px-5 font-semibold tracking-tight sm:px-6"
         >
           {pending ? "Checking…" : "Check It"}
         </Button>
@@ -178,14 +178,14 @@ export function HeroInput({
   }
 
   return (
-    <section className="py-8 text-center sm:py-12">
-      <h2 className="wordmark text-4xl sm:text-6xl">
+    <section className="py-6 text-center sm:py-10 lg:py-12">
+      <h2 className="wordmark text-3xl sm:text-5xl lg:text-6xl">
         Ground<span className="text-brand">Truth</span>
       </h2>
       <p className="mt-3 text-sm font-medium tracking-wide text-muted-foreground">
         Answers with receipts.
       </p>
-      <div className="mx-auto mt-8 max-w-2xl text-left">{form}</div>
+      <div className="mx-auto mt-6 max-w-2xl text-left sm:mt-8">{form}</div>
     </section>
   );
 }
