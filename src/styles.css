@@ -111,6 +111,14 @@
   --brand: oklch(0.74 0.12 148);
   --brand-ink: oklch(0.44 0.02 250);
 
+  /* Claim status system — dark defaults */
+  --status-primary: oklch(0.74 0.13 148);
+  --status-corroborated: oklch(0.72 0.10 225);
+  --status-weak: oklch(0.82 0.13 82);
+  --status-untraceable: oklch(0.70 0.015 264);
+  --status-contradicted: oklch(0.68 0.16 25);
+
+
   --chart-1: var(--accent-blue);
   --chart-2: var(--accent-red);
   --chart-3: var(--accent-yellow);
